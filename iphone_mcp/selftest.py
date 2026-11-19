@@ -71,6 +71,10 @@ async def _run() -> int:
             ok, detail = False, f"{type(e).__name__}: {e}"
         mark = "✓" if ok else "✗"
         print(f"{mark} {name:<34} {time.monotonic() - t0:5.1f}s  {detail[:110]}")
+        if "is locked" in detail or "SleepLockScreen" in detail or "could not be, unlocked" in detail:
+            failed += 1  # an interrupted run never counts as passed
+            print("\nStopped: the iPhone locked itself during the test. Unlock it, keep it awake and run again.")
+            break
         if not ok:
             failed += 1
             if name.startswith(("Start", "Status")):

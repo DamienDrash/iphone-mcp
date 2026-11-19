@@ -357,10 +357,16 @@ async def _visible_matches(w: WDAClient, text: str, exact: bool) -> list[dict]:
     q = predicate_escape(text)
     op = "==[c]" if exact else "CONTAINS[c]"
     # The app's own window carries the app name as label – never treat it as a match.
-    ids = await w.find_elements(
-        "predicate string",
-        f"type != 'XCUIElementTypeApplication' AND (label {op} '{q}' OR name {op} '{q}' OR value {op} '{q}')",
-    )
+    predicate = f"type != 'XCUIElementTypeApplication' AND (label {op} '{q}' OR name {op} '{q}' OR value {op} '{q}')"
+    for attempt in range(3):
+        try:
+            ids = await w.find_elements("predicate string", predicate)
+            break
+        except WDAError as e:
+            # While the screen changes, WebDriverAgent can report its own cached elements as stale.
+            if "stale element" not in str(e).lower() or attempt == 2:
+                raise
+            await asyncio.sleep(0.3)
     sw, sh = await w.window_size()
     hits = []
     for eid in ids[:40]:

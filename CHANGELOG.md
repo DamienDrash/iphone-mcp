@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0 – 2026-11-19 · release candidate for 1.0
+
+The tool interface is now frozen: until 1.0 only fixes and documentation change.
+
+- Starting WebDriverAgent **without Xcode over USB** (pymobiledevice3, root-free tunnel) verified on a real
+  iPhone: `iphone-mcp selftest` 18/18.
+- Fixed: searching for text could fail with "stale element reference" while the screen was changing; the search
+  now retries.
+- `iphone-mcp selftest` stops with a clear message when the iPhone locks itself during the run.
+
 ## 0.3.0 – 2026-11-19
 
 - **Self-healing:** if WebDriverAgent crashed or the connection dropped, the next tool call restarts it and retries

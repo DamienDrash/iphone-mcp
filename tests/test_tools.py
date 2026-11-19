@@ -190,3 +190,26 @@ def test_recovering_reports_failed_restart(monkeypatch, wda):
     monkeypatch.setattr(server.conn, "auto_recover", True)
     result = run(server.iphone_tap(1, 2))
     assert result.startswith("Error: lost") and "The iPhone is locked" in result
+
+
+def test_search_retries_when_screen_is_changing(monkeypatch, wda):
+    original = wda.handler
+    state = {"n": 0}
+
+    def flaky(request):
+        if request.url.path.endswith("/elements") and state["n"] < 2:
+            state["n"] += 1
+            return httpx.Response(404, json={"value": {"error": "stale element reference", "message": "gone"}})
+        return original(request)
+
+    wda.handler = flaky
+    client = WDAClient("http://wda")
+    client._http = httpx.AsyncClient(base_url="http://wda", transport=httpx.MockTransport(lambda r: wda.handler(r)))
+
+    async def get():
+        return client
+
+    monkeypatch.setattr(server.conn, "get", get)
+    wda.element_rounds = [[]]
+    assert "no longer on screen" in run(server.iphone_wait_for("General", timeout=2, gone=True))
+    assert state["n"] == 2

@@ -224,9 +224,9 @@ IPHONE_MCP_WDA_URL=http://<iphone-ip>:8100 uvx iphone-mcp
 | Setup | Status |
 |---|---|
 | macOS 27 + Xcode 27 · iPhone 15 Pro Max, iOS 26.6 · cable and Wi-Fi | ✅ full test incl. `iphone-mcp selftest` |
-| Starting WebDriverAgent without Xcode (pymobiledevice3) · on macOS over Wi-Fi sync | ✅ |
+| Starting WebDriverAgent without Xcode (pymobiledevice3, root-free tunnel) · over USB and over Wi-Fi sync | ✅ `selftest` passed over USB |
 | Linux (Ubuntu 26.04 VM) driving the iPhone over Wi-Fi with `IPHONE_MCP_WDA_URL` · `setup --prebuilt` on Linux | ✅ |
-| Starting without Xcode over USB · RemotePairing Wi-Fi (`IPHONE_MCP_MODE=wifi`) | ⚠️ not tested yet |
+| RemotePairing Wi-Fi without a Mac (`IPHONE_MCP_MODE=wifi`) | ⚠️ not tested yet |
 | Real Linux / Windows hosts launching WebDriverAgent · iOS 17 and 18 | ⚠️ not tested yet – CI covers Linux and Windows without a device |
 
 **Help wanted:** if you run iphone-mcp on iOS 17/18, Windows or Linux, please
@@ -282,8 +282,8 @@ iphone-mcp writes files only to these places, never to your project:
 iphone-mcp follows [Semantic Versioning](https://semver.org). The public interface is the set of **MCP tools,
 their parameters and annotations**, the **CLI commands** and the **environment variables** documented here.
 
-- **Before 1.0** (now): a minor release (0.x → 0.y) may still rename or merge tools; the CHANGELOG lists every
-  such change under *Changed*.
+- **0.9 is the release candidate for 1.0** (now): the interface is frozen; until 1.0 only fixes and
+  documentation change. Earlier 0.x releases could still rename or merge tools (see the CHANGELOG).
 - **From 1.0 on:** tools and parameters are only removed or renamed in a new major version. A tool that is
   going away is first marked *deprecated* in its description and the CHANGELOG, and keeps working for at least
   one minor release. New optional parameters and new tools come in minor releases.
