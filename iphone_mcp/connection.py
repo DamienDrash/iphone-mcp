@@ -25,6 +25,7 @@ from .wda import WDAClient, WDAError
 
 WDA_PORT = 8100
 KEEP_AWAKE_INTERVAL = 10  # seconds; iOS Auto-Lock is at least 30 s
+STALE_AFTER = 60  # seconds an xcodebuild started by another process may take before it is replaced
 NOT_CONNECTED = (
     "No connection to WebDriverAgent on the iPhone. Call iphone_start_agent first "
     "(iPhone on USB or on the same Wi-Fi as this computer, unlocked)."
@@ -269,8 +270,10 @@ class Connection:
         if not runs or not udid:
             raise WDAError("WebDriverAgent is not built yet. Run once in a terminal: iphone-mcp setup")
 
-        if self.wda_running_pid() and self._proc is None:
-            await self.stop_wda()  # leftover xcodebuild from an earlier run without a reachable WDA
+        # An xcodebuild started by another iphone-mcp process (e.g. a second agent window) may still be
+        # bringing WebDriverAgent up: wait for it instead of killing it. Only if it stays unreachable for
+        # STALE_AFTER seconds is it treated as a leftover and replaced.
+        foreign = self.wda_running_pid() if self._proc is None else None
 
         def launch() -> None:
             log = open(paths.WDA_LOG, "a")
@@ -289,12 +292,18 @@ class Connection:
             launch()
         attempts = 1
         loop = asyncio.get_running_loop()
-        deadline = loop.time() + timeout
+        started = loop.time()
+        deadline = started + timeout
         while loop.time() < deadline:
             try:
                 await self.get()
                 return f"WebDriverAgent is running, connected via {self.transport}."
             except WDAError:
+                if foreign and loop.time() - started > STALE_AFTER and self.wda_running_pid() == foreign:
+                    await self.stop_wda()  # leftover that never came up
+                    foreign = None
+                    launch()
+                    continue
                 log = paths.WDA_LOG.read_text(errors="ignore")
                 if log.rfind("because the device is locked") > log.rfind("ServerURLHere"):
                     # xcodebuild keeps waiting and continues by itself once the iPhone is unlocked

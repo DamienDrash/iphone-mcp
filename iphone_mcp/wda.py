@@ -45,9 +45,23 @@ class WDAClient:
     async def status(self) -> dict:
         return await self._request("GET", "/status")
 
+    async def current_session(self) -> str | None:
+        """Session ID that WebDriverAgent is already serving (it supports only one at a time)."""
+        try:
+            r = await self._http.get("/status")
+            data = r.json()
+        except (httpx.HTTPError, ValueError):
+            return None
+        return data.get("sessionId") if isinstance(data, dict) else None
+
     async def session(self) -> str:
         if self._session:
             return self._session
+        # Join an existing session instead of replacing it: creating a new one would end the session of
+        # any other client (e.g. a second agent window) that is using the same iPhone.
+        if existing := await self.current_session():
+            self._session = existing
+            return existing
         value = await self._request(
             "POST", "/session", {"capabilities": {"alwaysMatch": {"shouldWaitForQuiescence": False}}}
         )
@@ -133,6 +147,26 @@ class WDAClient:
                 {"type": "pointerUp", "button": 0},
             ]
         )
+
+    async def pinch(self, cx: float, cy: float, scale: float, duration_ms: int = 500, spread: float = 120) -> None:
+        """Two-finger pinch around (cx, cy): scale > 1 spreads the fingers (zoom in), < 1 pinches (zoom out)."""
+        start, end = spread / 2, spread * scale / 2
+
+        def finger(name: str, sign: int) -> dict:
+            return {
+                "type": "pointer",
+                "id": name,
+                "parameters": {"pointerType": "touch"},
+                "actions": [
+                    {"type": "pointerMove", "duration": 0, "x": cx + sign * start, "y": cy},
+                    {"type": "pointerDown", "button": 0},
+                    {"type": "pause", "duration": 30},
+                    {"type": "pointerMove", "duration": duration_ms, "x": cx + sign * end, "y": cy},
+                    {"type": "pointerUp", "button": 0},
+                ],
+            }
+
+        await self.s("POST", "/actions", {"actions": [finger("finger1", -1), finger("finger2", 1)]})
 
     async def find_elements(self, using: str, value: str) -> list[str]:
         v = await self.s("POST", "/elements", {"using": using, "value": value})

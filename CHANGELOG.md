@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0 – 2026-11-19
+
+- **New tools:** `iphone_wait_for` (wait until a text appears or disappears) and `iphone_pinch` (two-finger zoom).
+- **Changed:** `iphone_double_tap` and `iphone_long_press` are now part of `iphone_tap` (`gesture="double"` / `"long"`).
+- Every tool has a detailed description (purpose, when to use it, behaviour), described and range-checked
+  parameters, and MCP tool annotations (read-only, destructive, idempotent).
+- Several agent windows can share one iPhone: iphone-mcp joins the running WebDriverAgent session instead of
+  replacing it, and no longer stops an `xcodebuild` that another iphone-mcp process started.
+- Tapping or waiting by text no longer fails when an element disappears while it is being read.
+- Dependabot and CodeQL code scanning for the repository.
+
 ## 0.1.2 – 2026-11-19
 
 - GitHub Sponsors: Sponsor button on the repository, funding link on PyPI, a support section in the README

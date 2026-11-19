@@ -38,7 +38,7 @@ Screenshots come **scaled to iOS points**, so every pixel the model sees is a co
 <td width="50%" valign="top">
 
 ### 👆 Acts like a person
-Tap, double-tap, long-press, **tap by text**, swipe, scroll, type, press Home and the volume buttons. It can also launch apps by name (`"Settings"`, `"Einstellungen"`) and open URLs and deep links.
+Tap, double-tap, long-press, **tap by text**, swipe, scroll, **pinch-zoom**, type, press Home and the volume buttons, and **wait for text** to appear instead of guessing delays. It can also launch apps by name (`"Settings"`, `"Einstellungen"`) and open URLs and deep links.
 
 </td>
 </tr>
@@ -166,9 +166,11 @@ flowchart LR
 | `iphone_status` | Connection, screen size, lock state, keep-awake, foreground app |
 | `iphone_screenshot` | Screenshot scaled to iOS points – image pixels = tap coordinates |
 | `iphone_ui_tree` | Visible elements with text and center point |
-| `iphone_tap` · `iphone_double_tap` · `iphone_long_press` | Touch at coordinates |
+| `iphone_wait_for` | Wait until a text appears (or disappears) – no guessing of delays |
+| `iphone_tap` | Tap, double-tap or long-press at coordinates |
 | `iphone_tap_text` | Tap the element showing a given text |
 | `iphone_swipe` · `iphone_scroll` | Swipe / scroll in any direction |
+| `iphone_pinch` | Two-finger pinch to zoom in or out |
 | `iphone_type` | Type into the focused field, optionally press Return |
 | `iphone_press_button` | Home, volume up, volume down |
 | `iphone_lock` | Lock, or wake/unlock (without passcode) |
