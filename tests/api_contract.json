@@ -1,0 +1,298 @@
+{
+  "iphone_close_app": {
+    "params": {
+      "app": {
+        "type": "string",
+        "enum": null,
+        "required": true
+      }
+    },
+    "read_only": false,
+    "destructive": true
+  },
+  "iphone_keep_awake": {
+    "params": {
+      "enabled": {
+        "type": "boolean",
+        "enum": null,
+        "required": true
+      }
+    },
+    "read_only": false,
+    "destructive": false
+  },
+  "iphone_launch_app": {
+    "params": {
+      "app": {
+        "type": "string",
+        "enum": null,
+        "required": true
+      }
+    },
+    "read_only": false,
+    "destructive": false
+  },
+  "iphone_list_apps": {
+    "params": {
+      "filter": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": null,
+        "required": false
+      }
+    },
+    "read_only": true,
+    "destructive": false
+  },
+  "iphone_lock": {
+    "params": {
+      "action": {
+        "type": "string",
+        "enum": [
+          "lock",
+          "unlock"
+        ],
+        "required": true
+      }
+    },
+    "read_only": false,
+    "destructive": false
+  },
+  "iphone_open_url": {
+    "params": {
+      "url": {
+        "type": "string",
+        "enum": null,
+        "required": true
+      }
+    },
+    "read_only": false,
+    "destructive": false
+  },
+  "iphone_pinch": {
+    "params": {
+      "scale": {
+        "type": "number",
+        "enum": null,
+        "required": true
+      },
+      "x": {
+        "type": [
+          "number",
+          "null"
+        ],
+        "enum": null,
+        "required": false
+      },
+      "y": {
+        "type": [
+          "number",
+          "null"
+        ],
+        "enum": null,
+        "required": false
+      }
+    },
+    "read_only": false,
+    "destructive": false
+  },
+  "iphone_press_button": {
+    "params": {
+      "button": {
+        "type": "string",
+        "enum": [
+          "home",
+          "volumeUp",
+          "volumeDown"
+        ],
+        "required": true
+      }
+    },
+    "read_only": false,
+    "destructive": false
+  },
+  "iphone_screenshot": {
+    "params": {
+      "quality": {
+        "type": "integer",
+        "enum": null,
+        "required": false
+      }
+    },
+    "read_only": true,
+    "destructive": false
+  },
+  "iphone_scroll": {
+    "params": {
+      "amount": {
+        "type": "number",
+        "enum": null,
+        "required": false
+      },
+      "direction": {
+        "type": "string",
+        "enum": [
+          "up",
+          "down",
+          "left",
+          "right"
+        ],
+        "required": true
+      }
+    },
+    "read_only": false,
+    "destructive": false
+  },
+  "iphone_start_agent": {
+    "params": {},
+    "read_only": false,
+    "destructive": false
+  },
+  "iphone_status": {
+    "params": {},
+    "read_only": true,
+    "destructive": false
+  },
+  "iphone_stop_agent": {
+    "params": {},
+    "read_only": false,
+    "destructive": false
+  },
+  "iphone_swipe": {
+    "params": {
+      "duration_ms": {
+        "type": "integer",
+        "enum": null,
+        "required": false
+      },
+      "x1": {
+        "type": "number",
+        "enum": null,
+        "required": true
+      },
+      "x2": {
+        "type": "number",
+        "enum": null,
+        "required": true
+      },
+      "y1": {
+        "type": "number",
+        "enum": null,
+        "required": true
+      },
+      "y2": {
+        "type": "number",
+        "enum": null,
+        "required": true
+      }
+    },
+    "read_only": false,
+    "destructive": false
+  },
+  "iphone_tap": {
+    "params": {
+      "gesture": {
+        "type": "string",
+        "enum": [
+          "tap",
+          "double",
+          "long"
+        ],
+        "required": false
+      },
+      "hold_seconds": {
+        "type": "number",
+        "enum": null,
+        "required": false
+      },
+      "x": {
+        "type": "number",
+        "enum": null,
+        "required": true
+      },
+      "y": {
+        "type": "number",
+        "enum": null,
+        "required": true
+      }
+    },
+    "read_only": false,
+    "destructive": false
+  },
+  "iphone_tap_text": {
+    "params": {
+      "exact": {
+        "type": "boolean",
+        "enum": null,
+        "required": false
+      },
+      "index": {
+        "type": "integer",
+        "enum": null,
+        "required": false
+      },
+      "text": {
+        "type": "string",
+        "enum": null,
+        "required": true
+      }
+    },
+    "read_only": false,
+    "destructive": false
+  },
+  "iphone_type": {
+    "params": {
+      "submit": {
+        "type": "boolean",
+        "enum": null,
+        "required": false
+      },
+      "text": {
+        "type": "string",
+        "enum": null,
+        "required": true
+      }
+    },
+    "read_only": false,
+    "destructive": false
+  },
+  "iphone_ui_tree": {
+    "params": {
+      "max_lines": {
+        "type": "integer",
+        "enum": null,
+        "required": false
+      }
+    },
+    "read_only": true,
+    "destructive": false
+  },
+  "iphone_wait_for": {
+    "params": {
+      "exact": {
+        "type": "boolean",
+        "enum": null,
+        "required": false
+      },
+      "gone": {
+        "type": "boolean",
+        "enum": null,
+        "required": false
+      },
+      "text": {
+        "type": "string",
+        "enum": null,
+        "required": true
+      },
+      "timeout": {
+        "type": "number",
+        "enum": null,
+        "required": false
+      }
+    },
+    "read_only": true,
+    "destructive": false
+  }
+}

@@ -34,6 +34,39 @@ def load(path: Path) -> dict:
         return {}
 
 
+def pid_alive(pid: int) -> bool:
+    """Whether a process exists. Never use os.kill(pid, 0) on Windows: there it terminates the process."""
+    if os.name == "nt":
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+        handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not handle:
+            return False
+        code = ctypes.c_ulong()
+        ok = kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
+        kernel32.CloseHandle(handle)
+        return bool(ok) and code.value == 259  # STILL_ACTIVE
+    try:
+        os.kill(pid, 0)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def register_client(pid: int) -> None:
+    """Remember a running MCP server process (several agent windows can share one iPhone)."""
+    clients = [p for p in load(STATE_FILE).get("clients", []) if p != pid and pid_alive(p)]
+    update(STATE_FILE, clients=[*clients, pid])
+
+
+def unregister_client(pid: int) -> list[int]:
+    """Forget a server process; returns the other servers that are still running."""
+    others = [p for p in load(STATE_FILE).get("clients", []) if p != pid and pid_alive(p)]
+    update(STATE_FILE, clients=others)
+    return others
+
+
 def update(path: Path, **values) -> None:
     data = load(path)
     data.update(values)

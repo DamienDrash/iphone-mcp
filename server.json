@@ -8,12 +8,12 @@
     "url": "https://github.com/DamienDrash/iphone-mcp",
     "source": "github"
   },
-  "version": "0.2.0",
+  "version": "0.3.0",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "iphone-mcp",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
@@ -37,6 +37,16 @@
         {
           "name": "IPHONE_MCP_KEEP_AWAKE",
           "description": "Keep the screen from auto-locking while connected (1 = default, 0 = off)",
+          "isRequired": false
+        },
+        {
+          "name": "IPHONE_MCP_AUTO_RECOVER",
+          "description": "Restart WebDriverAgent and retry once after a crash or lost connection (1 = default, 0 = off)",
+          "isRequired": false
+        },
+        {
+          "name": "IPHONE_MCP_STOP_ON_EXIT",
+          "description": "Stop WebDriverAgent when the last iphone-mcp server exits (1 = default, 0 = keep running)",
           "isRequired": false
         }
       ]

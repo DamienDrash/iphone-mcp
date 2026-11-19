@@ -16,6 +16,10 @@ class WDAError(RuntimeError):
     pass
 
 
+class WDAConnectionError(WDAError):
+    """WebDriverAgent could not be reached (not started, crashed, or the link to the iPhone dropped)."""
+
+
 class WDAClient:
     def __init__(self, base_url: str, timeout: float = 30.0):
         self.base_url = base_url.rstrip("/")
@@ -30,7 +34,7 @@ class WDAClient:
         try:
             r = await self._http.request(method, path, json=json)
         except httpx.HTTPError as e:
-            raise WDAError(f"WebDriverAgent at {self.base_url} is not reachable: {e}") from e
+            raise WDAConnectionError(f"WebDriverAgent at {self.base_url} is not reachable: {e}") from e
         try:
             data = r.json()
         except ValueError:

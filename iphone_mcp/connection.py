@@ -19,9 +19,13 @@ import socket
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from . import paths
-from .wda import WDAClient, WDAError
+from .wda import WDAClient, WDAConnectionError, WDAError
+
+if TYPE_CHECKING:
+    from .xctest_launcher import XCTestLauncher
 
 WDA_PORT = 8100
 KEEP_AWAKE_INTERVAL = 10  # seconds; iOS Auto-Lock is at least 30 s
@@ -94,17 +98,19 @@ class Connection:
         self.manual_url = os.environ.get("IPHONE_MCP_WDA_URL")
         self.client: WDAClient | None = None
         self.transport: str = "-"
-        self._forwarder = None
+        self._forwarder: Any = None  # pymobiledevice3 UsbmuxTcpForwarder
         self._forward_task: asyncio.Task | None = None
         self._lock = asyncio.Lock()
         self._proc: subprocess.Popen | None = None
+        self.owner = "server"  # who starts WebDriverAgent: "server" (stopped with the last server) or "cli"
         cfg = paths.load(paths.WDA_FILE)
         default_launcher = (
             "xcodebuild" if paths.IS_MAC and cfg.get("launcher", "xcodebuild") == "xcodebuild" else "pymobiledevice3"
         )
         self.launcher = os.environ.get("IPHONE_MCP_LAUNCHER", default_launcher).lower()
-        self._xct = None  # XCTestLauncher when WebDriverAgent was started without Xcode
+        self._xct: XCTestLauncher | None = None  # set when WebDriverAgent was started without Xcode
         self.keep_awake = os.environ.get("IPHONE_MCP_KEEP_AWAKE", "1").lower() not in ("0", "false", "no", "off")
+        self.auto_recover = os.environ.get("IPHONE_MCP_AUTO_RECOVER", "1").lower() not in ("0", "false", "no", "off")
         self._keep_awake_task: asyncio.Task | None = None
 
     # ---------- discovery ----------
@@ -240,20 +246,24 @@ class Connection:
                     if c := await self._try(f"http://{url_host(ip)}:{WDA_PORT}", f"Wi-Fi ({ip})"):
                         return c
 
-            raise WDAError(NOT_CONNECTED)
+            raise WDAConnectionError(NOT_CONNECTED)
+
+    async def recover(self) -> str:
+        """(Re)start WebDriverAgent after it became unreachable. Raises WDAError with the reason if it can't."""
+        if not self.auto_recover:
+            raise WDAConnectionError(NOT_CONNECTED)
+        if self.client is not None:
+            await self.client.close()
+            self.client = None
+        await self._stop_forward()
+        return await self.start_wda(timeout=120)
 
     # ---------- WebDriverAgent process (macOS only) ----------
     def wda_running_pid(self) -> int | None:
         if self._proc is not None:
             return self._proc.pid if self._proc.poll() is None else None
         pid = paths.load(paths.STATE_FILE).get("wda_pid")
-        if not pid:
-            return None
-        try:
-            os.kill(pid, 0)
-            return pid
-        except OSError:
-            return None
+        return pid if pid and paths.pid_alive(pid) else None
 
     async def start_wda(self, timeout: float = 150) -> str:
         try:
@@ -284,7 +294,7 @@ class Connection:
                 stdin=subprocess.DEVNULL,
                 start_new_session=True,
             )
-            paths.update(paths.STATE_FILE, wda_pid=self._proc.pid)
+            paths.update(paths.STATE_FILE, wda_pid=self._proc.pid, wda_owner=self.owner)
 
         if not self.wda_running_pid():  # an xcodebuild of ours may still be waiting, e.g. for an unlock
             paths.LOG_DIR.mkdir(parents=True, exist_ok=True)

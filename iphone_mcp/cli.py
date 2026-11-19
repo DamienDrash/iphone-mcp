@@ -44,7 +44,8 @@ def _doctor() -> int:
             line(False, "No iPhone known to Xcode – connect it by cable once and tap 'Trust'")
         for d in devices:
             reach = d.get("tunnelState") != "unavailable"
-            via = {"wired": "cable", "localNetwork": "Wi-Fi"}.get(d.get("transportType"), d.get("transportType") or "-")
+            transport = str(d.get("transportType") or "-")
+            via = {"wired": "cable", "localNetwork": "Wi-Fi"}.get(transport, transport)
             line(
                 reach,
                 f"{d['name']} ({d.get('model')}, iOS {d.get('os')}): {d.get('tunnelState')} via {via}, developer mode {d.get('developerMode')}",
@@ -91,7 +92,9 @@ def _start() -> int:
     from .connection import Connection
 
     async def go() -> str:
-        return await Connection().start_wda()
+        conn = Connection()
+        conn.owner = "cli"  # started by hand: keep it running when MCP servers exit
+        return await conn.start_wda()
 
     try:
         print(asyncio.run(go()))
@@ -129,6 +132,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_setup.add_argument("--ipa", help="no Xcode: install this signed WebDriverAgent .ipa over USB")
     sub.add_parser("doctor", help="check Xcode, signing, iPhone and connection")
+    sub.add_parser("selftest", help="exercise the tools on the iPhone with harmless actions")
     sub.add_parser("start", help="start WebDriverAgent without an MCP client")
     sub.add_parser("stop", help="stop WebDriverAgent")
     args = parser.parse_args(argv)
@@ -139,6 +143,10 @@ def main(argv: list[str] | None = None) -> int:
         return run(args.udid, args.team, args.bundle_id, prebuilt=args.prebuilt, ipa=args.ipa)
     if args.command == "doctor":
         return _doctor()
+    if args.command == "selftest":
+        from .selftest import run as selftest
+
+        return selftest()
     if args.command == "start":
         return _start()
     if args.command == "stop":

@@ -15,7 +15,7 @@
 
 **An [MCP](https://modelcontextprotocol.io) server that gives Claude Code, OpenAI Codex and any other MCP client<br>eyes and hands on a real, physical iPhone – over a cable or Wi-Fi.**
 
-[Quick start](#-quick-start) · [Tools](#-tools) · [Wi-Fi](#-wi-fi) · [Linux & Windows](#-linux--windows) · [Safety](#-safety) · [Troubleshooting](#-troubleshooting) · [Sponsor ❤](#-support-the-project)
+[Quick start](#-quick-start) · [Tools](#-tools) · [Wi-Fi](#-wi-fi) · [Linux & Windows](#-linux--windows) · [Reliability](#-reliability) · [Safety](#-safety) · [Troubleshooting](#-troubleshooting) · [Sponsor ❤](#-support-the-project)
 
 </div>
 
@@ -219,11 +219,19 @@ You can also leave WebDriverAgent running from a Mac and drive it from anywhere 
 IPHONE_MCP_WDA_URL=http://<iphone-ip>:8100 uvx iphone-mcp
 ```
 
-> [!NOTE]
-> **What is tested so far:** the no-Xcode path – installing with `setup --ipa` and starting through
-> pymobiledevice3 – on macOS against a real iPhone (iOS 26.6) over usbmux Wi-Fi sync.
-> **Not tested yet:** USB, the pure RemotePairing Wi-Fi mode (`IPHONE_MCP_MODE=wifi`) and real Linux / Windows
-> machines. Reports are very welcome – please open an issue with the output of `iphone-mcp doctor`.
+### Tested on
+
+| Setup | Status |
+|---|---|
+| macOS 27 + Xcode 27 · iPhone 15 Pro Max, iOS 26.6 · cable and Wi-Fi | ✅ full test incl. `iphone-mcp selftest` |
+| Starting WebDriverAgent without Xcode (pymobiledevice3) · on macOS over Wi-Fi sync | ✅ |
+| Linux (Ubuntu 26.04 VM) driving the iPhone over Wi-Fi with `IPHONE_MCP_WDA_URL` · `setup --prebuilt` on Linux | ✅ |
+| Starting without Xcode over USB · RemotePairing Wi-Fi (`IPHONE_MCP_MODE=wifi`) | ⚠️ not tested yet |
+| Real Linux / Windows hosts launching WebDriverAgent · iOS 17 and 18 | ⚠️ not tested yet – CI covers Linux and Windows without a device |
+
+**Help wanted:** if you run iphone-mcp on iOS 17/18, Windows or Linux, please
+[open an issue](https://github.com/DamienDrash/iphone-mcp/issues/new) with the output of `iphone-mcp doctor` and
+`iphone-mcp selftest`, even if everything works.
 
 ## ⌨️ Command line
 
@@ -233,6 +241,7 @@ IPHONE_MCP_WDA_URL=http://<iphone-ip>:8100 uvx iphone-mcp
 | `iphone-mcp doctor` | Check Xcode / signing / iPhone / connection |
 | `iphone-mcp setup [--udid …] [--team …]` | Build & install WebDriverAgent with Xcode |
 | `iphone-mcp setup --prebuilt` · `--ipa FILE` | Without Xcode: download the prebuilt app / install a signed one |
+| `iphone-mcp selftest` | Try the tools on the iPhone with harmless actions (Settings, scrolling, back) |
 | `iphone-mcp start` · `stop` | Start / stop WebDriverAgent without an MCP client |
 
 ## ⚙️ Configuration
@@ -243,6 +252,8 @@ IPHONE_MCP_WDA_URL=http://<iphone-ip>:8100 uvx iphone-mcp
 | `IPHONE_MCP_MODE` | `auto` (default), `usb` or `wifi` |
 | `IPHONE_MCP_WDA_URL` | Fixed WebDriverAgent address, e.g. `http://192.168.1.42:8100` |
 | `IPHONE_MCP_KEEP_AWAKE` | `1` (default) keeps the screen awake while connected, `0` turns it off |
+| `IPHONE_MCP_AUTO_RECOVER` | `1` (default) restarts WebDriverAgent and retries once if it crashed or the link dropped |
+| `IPHONE_MCP_STOP_ON_EXIT` | `1` (default) stops WebDriverAgent when the last iphone-mcp server exits; `0` leaves it running |
 | `IPHONE_MCP_LAUNCHER` | `xcodebuild` (default on macOS) or `pymobiledevice3` |
 | `IPHONE_MCP_TEAM_ID` · `IPHONE_MCP_BUNDLE_ID` | Signing team and bundle ID for `setup` |
 | `IPHONE_MCP_RUNNER_BUNDLE_ID` | Bundle ID of an installed WebDriverAgent runner (no-Xcode launch) |
@@ -255,6 +266,28 @@ iphone-mcp writes files only to these places, never to your project:
 | Config | `~/.config/iphone-mcp/` | `~/.config/iphone-mcp/` |
 | WebDriverAgent source and builds | `~/Library/Application Support/iphone-mcp/` | `~/.local/share/iphone-mcp/` |
 | Logs | `~/Library/Logs/iphone-mcp/` | `~/.local/share/iphone-mcp/logs/` |
+
+## 🔁 Reliability
+
+- **Self-healing:** if WebDriverAgent crashes or the cable drops mid-session, the next tool call restarts it and
+  retries once. If that is impossible (for example because the iPhone is locked), the tool says why.
+- **Several agent windows, one iPhone:** every iphone-mcp process joins the running WebDriverAgent session
+  instead of replacing it, and none stops the agent while another still uses it.
+- **Cleans up:** when the last iphone-mcp server exits, WebDriverAgent is stopped, so port 8100 is not left
+  open on the phone. An agent you started by hand with `iphone-mcp start` keeps running.
+- **Check it yourself:** `iphone-mcp selftest` drives the real phone through a harmless sequence and prints ✓/✗ per step.
+
+## 📐 Versioning
+
+iphone-mcp follows [Semantic Versioning](https://semver.org). The public interface is the set of **MCP tools,
+their parameters and annotations**, the **CLI commands** and the **environment variables** documented here.
+
+- **Before 1.0** (now): a minor release (0.x → 0.y) may still rename or merge tools; the CHANGELOG lists every
+  such change under *Changed*.
+- **From 1.0 on:** tools and parameters are only removed or renamed in a new major version. A tool that is
+  going away is first marked *deprecated* in its description and the CHANGELOG, and keeps working for at least
+  one minor release. New optional parameters and new tools come in minor releases.
+- The interface is pinned by a snapshot test (`tests/api_contract.json`), so no change slips through by accident.
 
 ## 🛡️ Safety
 
@@ -284,7 +317,7 @@ Logs: `~/Library/Logs/iphone-mcp/wda.log` (runtime) and `build.log` (setup).
 Issues and pull requests are welcome – see [CONTRIBUTING.md](CONTRIBUTING.md). Run the checks with:
 
 ```bash
-uv sync && uv run pytest && uv run ruff check . && uv run ruff format --check .
+uv sync && uv run pytest && uv run mypy && uv run ruff check . && uv run ruff format --check .
 ```
 
 ## 👤 Author

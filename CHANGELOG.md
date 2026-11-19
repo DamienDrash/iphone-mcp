@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 – 2026-11-19
+
+- **Self-healing:** if WebDriverAgent crashed or the connection dropped, the next tool call restarts it and retries
+  once (`IPHONE_MCP_AUTO_RECOVER`, on by default).
+- **Cleanup:** WebDriverAgent is stopped when the last iphone-mcp server exits (`IPHONE_MCP_STOP_ON_EXIT`, on by
+  default); one started with `iphone-mcp start` keeps running.
+- **New command `iphone-mcp selftest`:** drives the real iPhone through a harmless, language-independent sequence.
+- Interface snapshot test, type checking with mypy in CI, and tests against a simulated WebDriverAgent.
+- Dependencies are capped at the major versions iphone-mcp is tested with; `pydantic` is declared explicitly.
+- Fixed: on Windows, checking whether a process runs could terminate it.
+- README: *Reliability*, *Versioning* and *Tested on* sections; Linux (Ubuntu VM) verified driving the iPhone over Wi-Fi.
+
 ## 0.2.0 – 2026-11-19
 
 - **New tools:** `iphone_wait_for` (wait until a text appears or disappears) and `iphone_pinch` (two-finger zoom).

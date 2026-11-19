@@ -23,11 +23,13 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Testing",
 ]
+# Upper bounds = the major versions iphone-mcp is tested with; raised deliberately after testing.
 dependencies = [
-    "httpx>=0.28.1",
+    "httpx>=0.28.1,<1",
     "mcp>=2.3,<3",
-    "pillow>=11.0.0",
-    "pymobiledevice3>=11.59.0",
+    "pillow>=11.0.0,<14",
+    "pydantic>=2.7,<3",
+    "pymobiledevice3>=11.59.0,<12",
 ]
 
 [project.scripts]
@@ -41,7 +43,7 @@ Changelog = "https://github.com/DamienDrash/iphone-mcp/blob/main/CHANGELOG.md"
 Funding = "https://github.com/sponsors/DamienDrash"
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.8"]
+dev = ["mypy>=1.13", "pytest>=8", "ruff>=0.8"]
 
 [build-system]
 requires = ["hatchling"]
@@ -61,3 +63,15 @@ target-version = "py311"
 select = ["E", "F", "I", "B", "UP"]
 ignore = ["E501"]
 
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["iphone_mcp"]
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+module = ["pymobiledevice3.*"]
+ignore_missing_imports = true

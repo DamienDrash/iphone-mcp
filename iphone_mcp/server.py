@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
+import functools
 import io
 import logging
+import os
+import signal
+import sys
 from typing import Annotated, Literal
 
 from mcp.server.mcpserver import Image, MCPServer
@@ -12,8 +17,9 @@ from mcp.types import ToolAnnotations
 from PIL import Image as PILImage
 from pydantic import Field
 
+from . import paths
 from .connection import Connection
-from .wda import WDAClient, WDAError
+from .wda import WDAClient, WDAConnectionError, WDAError
 
 for _name in ("pymobiledevice3", "httpx", "httpcore", "asyncio"):
     logging.getLogger(_name).setLevel(logging.CRITICAL)
@@ -111,8 +117,44 @@ async def _lock_note(w: WDAClient) -> str:
         return ""
 
 
+_recovering = contextvars.ContextVar("iphone_mcp_recovering", default=False)
+
+
 def _err(e: Exception) -> str:
+    # Inside a @recovering tool, a lost connection is handed up so the agent can be restarted.
+    if _recovering.get() and isinstance(e, WDAConnectionError):
+        raise e
     return f"Error: {e}"
+
+
+def recovering(fn):
+    """Retry a device tool once after restarting WebDriverAgent when the connection was lost (crash, unplug)."""
+    returns_list = fn.__annotations__.get("return") in ("list", list)
+
+    def shaped(text: str):
+        return [text] if returns_list else text
+
+    @functools.wraps(fn)
+    async def wrapper(*args, **kwargs):
+        token = _recovering.set(True)
+        try:
+            return await fn(*args, **kwargs)
+        except WDAConnectionError as lost:
+            if not conn.auto_recover:
+                return shaped(f"Error: {lost}")
+            try:
+                await conn.recover()
+            except WDAError as e:
+                return shaped(f"Error: {lost}\nRestarting WebDriverAgent failed: {e}")
+        finally:
+            _recovering.reset(token)
+        result = await fn(*args, **kwargs)  # second and last attempt
+        note = "(WebDriverAgent had stopped and was restarted.) "
+        if isinstance(result, list):
+            return [*result, note.strip()]
+        return note + result
+
+    return wrapper
 
 
 # ---------------------------------------------------------------- shared parameter types
@@ -161,7 +203,8 @@ async def iphone_status() -> str:
     lines = []
     info = await conn.coredevice_info()
     if info:
-        via = {"wired": "cable", "localNetwork": "Wi-Fi"}.get(info.get("transportType"), info.get("transportType"))
+        transport = str(info.get("transportType") or "-")
+        via = {"wired": "cable", "localNetwork": "Wi-Fi"}.get(transport, transport)
         lines.append(
             f"Device: {info.get('name')} ({info.get('model')}, iOS {info.get('os')}), Xcode link: {info.get('tunnelState')} via {via}"
         )
@@ -224,6 +267,7 @@ async def iphone_keep_awake(
 
 # ---------------------------------------------------------------- looking
 @mcp.tool(annotations=_ann("Take screenshot", read_only=True, idempotent=True))
+@recovering
 async def iphone_screenshot(
     quality: Annotated[
         int, Field(description="JPEG quality from 20 to 95; lower is smaller and cheaper.", ge=20, le=95)
@@ -243,7 +287,7 @@ async def iphone_screenshot(
     img = PILImage.open(io.BytesIO(png)).convert("RGB")
     landscape = img.width > img.height
     target = (max(pw, ph), min(pw, ph)) if landscape else (min(pw, ph), max(pw, ph))
-    img = img.resize(target, PILImage.LANCZOS)
+    img = img.resize(target, PILImage.Resampling.LANCZOS)
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=max(20, min(quality, 95)))
     return [Image(data=buf.getvalue(), format="jpeg"), f"{img.width}×{img.height} points" + await _lock_note(w)]
@@ -274,6 +318,7 @@ def walk_tree(node: dict, out: list[str], screen: tuple[int, int], depth: int = 
 
 
 @mcp.tool(annotations=_ann("Read UI tree", read_only=True, idempotent=True))
+@recovering
 async def iphone_ui_tree(
     max_lines: Annotated[
         int,
@@ -331,6 +376,7 @@ async def _visible_matches(w: WDAClient, text: str, exact: bool) -> list[dict]:
 
 
 @mcp.tool(annotations=_ann("Wait for text", read_only=True, idempotent=True))
+@recovering
 async def iphone_wait_for(
     text: Annotated[
         str,
@@ -376,6 +422,7 @@ async def iphone_wait_for(
 
 # ---------------------------------------------------------------- gestures
 @mcp.tool(annotations=_ann("Tap", read_only=False))
+@recovering
 async def iphone_tap(
     x: X,
     y: Y,
@@ -412,6 +459,7 @@ async def iphone_tap(
 
 
 @mcp.tool(annotations=_ann("Tap element by text", read_only=False))
+@recovering
 async def iphone_tap_text(
     text: Annotated[
         str,
@@ -448,6 +496,7 @@ async def iphone_tap_text(
 
 
 @mcp.tool(annotations=_ann("Swipe", read_only=False))
+@recovering
 async def iphone_swipe(
     x1: Annotated[float, Field(description="Start x in iOS points.", ge=0)],
     y1: Annotated[float, Field(description="Start y in iOS points.", ge=0)],
@@ -484,6 +533,7 @@ def scroll_vector(direction: str, amount: float, size: tuple[int, int]) -> tuple
 
 
 @mcp.tool(annotations=_ann("Scroll", read_only=False))
+@recovering
 async def iphone_scroll(
     direction: Annotated[
         Literal["up", "down", "left", "right"],
@@ -509,6 +559,7 @@ async def iphone_scroll(
 
 
 @mcp.tool(annotations=_ann("Pinch to zoom", read_only=False))
+@recovering
 async def iphone_pinch(
     scale: Annotated[
         float,
@@ -537,6 +588,7 @@ async def iphone_pinch(
 
 # ---------------------------------------------------------------- input & buttons
 @mcp.tool(annotations=_ann("Type text", read_only=False))
+@recovering
 async def iphone_type(
     text: Annotated[str, Field(description="Text to type, exactly as it should appear. Use \\n for a line break.")],
     submit: Annotated[
@@ -556,6 +608,7 @@ async def iphone_type(
 
 
 @mcp.tool(annotations=_ann("Press hardware button", read_only=False))
+@recovering
 async def iphone_press_button(
     button: Annotated[
         Literal["home", "volumeUp", "volumeDown"],
@@ -581,6 +634,7 @@ async def iphone_press_button(
 
 
 @mcp.tool(annotations=_ann("Lock or unlock", read_only=False, idempotent=True))
+@recovering
 async def iphone_lock(
     action: Annotated[
         Literal["lock", "unlock"],
@@ -670,6 +724,7 @@ async def resolve_app(app: str) -> str:
 
 
 @mcp.tool(annotations=_ann("Launch app", read_only=False, idempotent=True))
+@recovering
 async def iphone_launch_app(app: APP) -> str:
     """Open an app, or bring it to the front if it is already running (its state is kept).
 
@@ -685,6 +740,7 @@ async def iphone_launch_app(app: APP) -> str:
 
 
 @mcp.tool(annotations=_ann("Close app", read_only=False, destructive=True, idempotent=True))
+@recovering
 async def iphone_close_app(app: APP) -> str:
     """Force-quit an app, like swiping it away in the app switcher.
 
@@ -699,6 +755,7 @@ async def iphone_close_app(app: APP) -> str:
 
 
 @mcp.tool(annotations=_ann("Open URL or deep link", read_only=False))
+@recovering
 async def iphone_open_url(
     url: Annotated[
         str,
@@ -721,5 +778,26 @@ async def iphone_open_url(
         return _err(e)
 
 
+def _cleanup_on_exit() -> None:
+    """Stop WebDriverAgent when the last iphone-mcp server ends, so port 8100 on the iPhone is not left open.
+
+    Not if other agent windows still use it, if it was started by hand (`iphone-mcp start`), or with
+    IPHONE_MCP_STOP_ON_EXIT=0. A runner launched without Xcode ends together with this process anyway."""
+    others = paths.unregister_client(os.getpid())
+    stop = os.environ.get("IPHONE_MCP_STOP_ON_EXIT", "1").lower() not in ("0", "false", "no", "off")
+    state = paths.load(paths.STATE_FILE)
+    if stop and not others and state.get("wda_pid") and state.get("wda_owner", "server") == "server":
+        try:
+            asyncio.run(Connection().stop_wda())
+        except Exception:  # noqa: BLE001 - best effort while shutting down
+            pass
+
+
 def serve() -> None:
-    mcp.run()
+    paths.register_client(os.getpid())
+    # Clients usually end a stdio server by closing stdin or with SIGTERM; both must run the cleanup.
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    try:
+        mcp.run()
+    finally:
+        _cleanup_on_exit()

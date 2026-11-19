@@ -167,7 +167,7 @@ def install_ipa(ipa: Path, udid: str | None) -> tuple[str, str]:
         lockdown = await create_using_usbmux(udid)
         print(f"→ Installing {bundle} on {lockdown.display_name} (iOS {lockdown.product_version}) …")
         await InstallationProxyService(lockdown).install_from_local(ipa)
-        return lockdown.udid
+        return str(lockdown.udid)
 
     try:
         return asyncio.run(go()), bundle
