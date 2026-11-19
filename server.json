@@ -1,0 +1,45 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.DamienDrash/iphone-mcp",
+  "title": "iPhone MCP",
+  "description": "See and control a real iPhone over USB or Wi-Fi: screenshots, UI tree, taps, swipes, typing, apps.",
+  "websiteUrl": "https://github.com/DamienDrash/iphone-mcp",
+  "repository": {
+    "url": "https://github.com/DamienDrash/iphone-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "iphone-mcp",
+      "version": "0.1.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "IPHONE_MCP_UDID",
+          "description": "UDID of the iPhone to use when several are connected",
+          "isRequired": false
+        },
+        {
+          "name": "IPHONE_MCP_MODE",
+          "description": "Connection mode: auto (default), usb or wifi",
+          "isRequired": false
+        },
+        {
+          "name": "IPHONE_MCP_WDA_URL",
+          "description": "Fixed WebDriverAgent URL, e.g. http://192.168.1.42:8100",
+          "isRequired": false
+        },
+        {
+          "name": "IPHONE_MCP_KEEP_AWAKE",
+          "description": "Keep the screen from auto-locking while connected (1 = default, 0 = off)",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}
