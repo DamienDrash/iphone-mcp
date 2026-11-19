@@ -8,3 +8,7 @@ build/
 vendor/
 *.xcresult
 .DS_Store
+
+# local project tracking (Leitstand)
+ROADMAP.md
+PO-STATUS.md
