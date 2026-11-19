@@ -88,8 +88,6 @@ uvx iphone-mcp doctor     # checks Xcode, signing, iPhone
 uvx iphone-mcp setup      # builds & installs WebDriverAgent, signed with your Apple ID
 ```
 
-<sub>Not on PyPI yet when you read this? Use `uvx --from git+https://github.com/DamienDrash/iphone-mcp iphone-mcp` instead of `uvx iphone-mcp`.</sub>
-
 **3 · Add it to your agent**
 
 <details open>
