@@ -21,6 +21,9 @@ WDA_REPO = "https://github.com/appium/WebDriverAgent.git"
 WDA_REF = os.environ.get("IPHONE_MCP_WDA_REF", "v16.15.3")  # pinned, tested release
 
 
+SPONSOR_LINE = "\n💖 iphone-mcp is free. If it helps you, consider sponsoring: https://github.com/sponsors/DamienDrash"
+
+
 class SetupError(RuntimeError):
     pass
 
@@ -191,6 +194,7 @@ def run_without_xcode(udid: str | None, ipa: str | None) -> int:
     print("  On the iPhone: Settings → General → VPN & Device Management → trust your developer certificate,")
     print("  Settings → Privacy & Security → Developer Mode: on, Settings → Developer → Enable UI Automation: on.")
     print("  Check with: iphone-mcp doctor   ·   try it with: iphone-mcp start")
+    print(SPONSOR_LINE)
     return 0
 
 
@@ -258,4 +262,5 @@ def run(
     print("  • Settings → Developer → Enable UI Automation: on")
     print("  • First start only: Settings → General → VPN & Device Management → trust the developer app")
     print("Optional, for Wi-Fi: Xcode → Window → Devices and Simulators → your iPhone → 'Connect via network'.")
+    print(SPONSOR_LINE)
     return 0

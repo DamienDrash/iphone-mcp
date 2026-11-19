@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 – 2026-11-19
+
+- GitHub Sponsors: Sponsor button on the repository, funding link on PyPI, a support section in the README
+  and a short note after `iphone-mcp setup`.
+
 ## 0.1.1 – 2026-11-19
 
 - Package metadata lists the supported Python versions (3.11–3.13); CI now tests all three.

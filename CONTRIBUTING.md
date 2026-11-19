@@ -1,6 +1,7 @@
 # Contributing
 
 Thanks for helping! Bug reports, device/iOS compatibility notes and pull requests are all welcome.
+You can also support the project financially through [GitHub Sponsors](https://github.com/sponsors/DamienDrash).
 
 ## Development setup
 

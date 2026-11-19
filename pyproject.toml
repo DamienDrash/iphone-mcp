@@ -38,6 +38,7 @@ Homepage = "https://github.com/DamienDrash/iphone-mcp"
 Repository = "https://github.com/DamienDrash/iphone-mcp"
 Issues = "https://github.com/DamienDrash/iphone-mcp/issues"
 Changelog = "https://github.com/DamienDrash/iphone-mcp/blob/main/CHANGELOG.md"
+Funding = "https://github.com/sponsors/DamienDrash"
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.8"]

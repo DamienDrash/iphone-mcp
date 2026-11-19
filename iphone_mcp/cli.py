@@ -110,7 +110,11 @@ def _stop() -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="iphone-mcp", description="Control a real iPhone from MCP clients.")
+    parser = argparse.ArgumentParser(
+        prog="iphone-mcp",
+        description="Control a real iPhone from MCP clients.",
+        epilog="Docs: https://github.com/DamienDrash/iphone-mcp · Sponsor: https://github.com/sponsors/DamienDrash",
+    )
     parser.add_argument("--version", action="version", version=__version__)
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("serve", help="run the MCP server on stdio (default)")

@@ -11,10 +11,11 @@
 [![MCP](https://img.shields.io/badge/MCP-server-7c5cff)](https://modelcontextprotocol.io)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-0b1020)](#-linux--windows)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-db61a2?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/DamienDrash)
 
 **An [MCP](https://modelcontextprotocol.io) server that gives Claude Code, OpenAI Codex and any other MCP client<br>eyes and hands on a real, physical iPhone – over a cable or Wi-Fi.**
 
-[Quick start](#-quick-start) · [Tools](#-tools) · [Wi-Fi](#-wi-fi) · [Linux & Windows](#-linux--windows) · [Safety](#-safety) · [Troubleshooting](#-troubleshooting)
+[Quick start](#-quick-start) · [Tools](#-tools) · [Wi-Fi](#-wi-fi) · [Linux & Windows](#-linux--windows) · [Safety](#-safety) · [Troubleshooting](#-troubleshooting) · [Sponsor ❤](#-support-the-project)
 
 </div>
 
@@ -288,7 +289,13 @@ uv sync && uv run pytest && uv run ruff check . && uv run ruff format --check .
 
 Built by **Damien Frigewski** – [@DamienDrash](https://github.com/DamienDrash).
 
-If iphone-mcp is useful to you, a ⭐ on GitHub helps others find it.
+## 💖 Support the project
+
+iphone-mcp is free and open source, and it stays that way. If it saves you time, you can support its development through **[GitHub Sponsors](https://github.com/sponsors/DamienDrash)**. Monthly and one-time options are available, and every amount helps. Sponsors get nothing extra in the software; it's simply a thank-you that keeps the work going.
+
+<a href="https://github.com/sponsors/DamienDrash"><img src="https://img.shields.io/badge/Sponsor_on_GitHub-%E2%9D%A4-db61a2?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Sponsor Damien Frigewski on GitHub"></a>
+
+A ⭐ on GitHub helps too – it makes iphone-mcp easier for others to find.
 
 ## 📄 License & credits
 
