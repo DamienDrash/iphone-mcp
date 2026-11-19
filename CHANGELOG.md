@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 – 2026-11-19
+
+- Package metadata lists the supported Python versions (3.11–3.13); CI now tests all three.
+
 ## 0.1.0 – 2026-11-19
 
 First public release.

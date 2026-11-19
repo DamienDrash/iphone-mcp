@@ -6,8 +6,8 @@
 <br>
 
 [![CI](https://github.com/DamienDrash/iphone-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/DamienDrash/iphone-mcp/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/iphone-mcp?color=7c5cff&label=PyPI)](https://pypi.org/project/iphone-mcp/)
-[![Python](https://img.shields.io/pypi/pyversions/iphone-mcp?color=22d3ee)](https://pypi.org/project/iphone-mcp/)
+[![PyPI](https://img.shields.io/pypi/v/iphone-mcp?color=7c5cff&label=PyPI&cacheSeconds=3600)](https://pypi.org/project/iphone-mcp/)
+[![Python](https://img.shields.io/pypi/pyversions/iphone-mcp?color=22d3ee&cacheSeconds=3600)](https://pypi.org/project/iphone-mcp/)
 [![MCP](https://img.shields.io/badge/MCP-server-7c5cff)](https://modelcontextprotocol.io)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-0b1020)](#-linux--windows)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
