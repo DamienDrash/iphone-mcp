@@ -23,6 +23,7 @@ class FakeWDA:
         self.elements: dict[str, dict] = {}  # id -> rect
         self.element_rounds: list[list[str]] = []  # ids returned per /elements call (last one repeats)
         self.locked = False
+        self.focused: str | None = None  # element with keyboard focus
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         path, method = request.url.path, request.method
@@ -33,6 +34,8 @@ class FakeWDA:
             return httpx.Response(200, json={"value": {"ready": True}, "sessionId": SID})
         if path == f"{s}/window/size":
             return self._v({"width": 430, "height": 932})
+        if path == f"{s}/element/active":
+            return self._v({"ELEMENT": self.focused} if self.focused else None)
         if path == "/wda/locked":
             return self._v(self.locked)
         if path == f"{s}/elements":
@@ -213,3 +216,43 @@ def test_search_retries_when_screen_is_changing(monkeypatch, wda):
     wda.element_rounds = [[]]
     assert "no longer on screen" in run(server.iphone_wait_for("General", timeout=2, gone=True))
     assert state["n"] == 2
+
+
+def test_type_replace_clears_focused_field_first(wda):
+    wda.focused = "field"
+    assert run(server.iphone_type("new", replace=True)) == "Cleared the field and typed 3 characters."
+    assert wda.posted("/element/field/clear")
+    assert wda.posted("/wda/keys")[0]["value"] == ["n", "e", "w"]
+    assert run(server.iphone_type("", replace=True)) == "Cleared the field."
+    assert len(wda.posted("/wda/keys")) == 1
+
+
+def test_type_replace_without_focus_types_nothing(wda):
+    assert "no text field has keyboard focus" in run(server.iphone_type("x", replace=True))
+    assert wda.posted("/wda/keys") == []
+
+
+@pytest.mark.parametrize(
+    ("panel", "start_y", "hold"),
+    [("notification_center", 2, False), ("control_center", 2, False), ("app_switcher", 930, True)],
+)
+def test_swipe_opens_system_panel(wda, panel, start_y, hold):
+    assert run(server.iphone_swipe(system=panel)).startswith("Opened")
+    steps = pointer_steps(wda.posted("/actions")[0])
+    assert steps[0]["y"] == start_y
+    assert (steps[-2]["type"] == "pause") is hold
+
+
+def test_swipe_without_coordinates_or_panel_fails(wda):
+    assert run(server.iphone_swipe(x1=1, y1=2)).startswith("Error: give x1")
+    assert wda.posted("/actions") == []
+
+
+def test_pinch_rotation_turns_fingers_along_the_arc(wda):
+    run(server.iphone_pinch(rotation=90))
+    fingers = wda.posted("/actions")[0]["actions"]
+    moves = [a for a in fingers[1]["actions"] if a["type"] == "pointerMove"][1:]
+    assert len(moves) == 6  # 90° in steps of at most 15°
+    first, last = fingers[1]["actions"][0], moves[-1]
+    assert (first["x"], first["y"]) == pytest.approx((275, 466))  # right of the center
+    assert (last["x"], last["y"]) == pytest.approx((215, 526))  # below it: turned clockwise
