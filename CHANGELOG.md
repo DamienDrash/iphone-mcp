@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-Additions from the Glama tool review; every new parameter is optional, so existing calls work unchanged.
+Additions from the Glama tool review, taken into 1.0 on purpose (the only interface change after the 0.9 freeze).
+Every new parameter is optional, so existing calls work unchanged.
 
 - `iphone_type` can **replace or clear** the focused field (`replace=true`; with empty text it only clears).
 - `iphone_swipe` opens **notifications, Control Center or the app switcher** (`system=…`) without coordinates.
