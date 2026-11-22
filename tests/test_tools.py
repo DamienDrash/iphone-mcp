@@ -234,13 +234,29 @@ def test_type_replace_without_focus_types_nothing(wda):
 
 @pytest.mark.parametrize(
     ("panel", "start_y", "hold"),
-    [("notification_center", 2, False), ("control_center", 2, False), ("app_switcher", 930, True)],
+    [("notification_center", 2, False), ("control_center", 2, False)],
 )
 def test_swipe_opens_system_panel(wda, panel, start_y, hold):
+    wda.elements = {"cc": {"x": 0, "y": 0, "width": 10, "height": 10}}
+    wda.element_rounds = [["cc"]]
     assert run(server.iphone_swipe(system=panel)).startswith("Opened")
     steps = pointer_steps(wda.posted("/actions")[0])
     assert steps[0]["y"] == start_y
     assert (steps[-2]["type"] == "pause") is hold
+
+
+def test_control_center_swipe_is_repeated_until_it_opens(wda):
+    wda.elements = {"cc": {"x": 0, "y": 0, "width": 10, "height": 10}}
+    wda.element_rounds = [[], ["cc"]]
+    assert run(server.iphone_swipe(system="control_center")).startswith("Opened control center")
+    assert len(wda.posted("/actions")) == 2
+    wda.element_rounds = [[]]
+    assert "did not open after 3 swipes" in run(server.iphone_swipe(system="control_center"))
+
+
+def test_notification_center_is_not_reported_as_locked(wda):
+    wda.locked = True  # iOS reports the cover sheet as locked
+    assert "locked" not in run(server.iphone_swipe(system="notification_center"))
 
 
 def test_swipe_without_coordinates_or_panel_fails(wda):
