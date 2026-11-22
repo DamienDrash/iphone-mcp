@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import math
 from typing import Any
 
 import httpx
@@ -141,31 +142,56 @@ class WDAClient:
             ]
         )
 
-    async def swipe(self, x1: float, y1: float, x2: float, y2: float, duration_ms: int = 300) -> None:
-        await self._actions(
-            [
-                {"type": "pointerMove", "duration": 0, "x": x1, "y": y1},
-                {"type": "pointerDown", "button": 0},
-                {"type": "pause", "duration": 30},
-                {"type": "pointerMove", "duration": duration_ms, "x": x2, "y": y2},
-                {"type": "pointerUp", "button": 0},
-            ]
-        )
+    async def swipe(
+        self, x1: float, y1: float, x2: float, y2: float, duration_ms: int = 300, hold_end_ms: int = 0
+    ) -> None:
+        """One-finger drag; hold_end_ms keeps the finger still at the end before lifting (app switcher)."""
+        steps = [
+            {"type": "pointerMove", "duration": 0, "x": x1, "y": y1},
+            {"type": "pointerDown", "button": 0},
+            {"type": "pause", "duration": 30},
+            {"type": "pointerMove", "duration": duration_ms, "x": x2, "y": y2},
+        ]
+        if hold_end_ms:
+            steps.append({"type": "pause", "duration": hold_end_ms})
+        steps.append({"type": "pointerUp", "button": 0})
+        await self._actions(steps)
 
-    async def pinch(self, cx: float, cy: float, scale: float, duration_ms: int = 500, spread: float = 120) -> None:
-        """Two-finger pinch around (cx, cy): scale > 1 spreads the fingers (zoom in), < 1 pinches (zoom out)."""
-        start, end = spread / 2, spread * scale / 2
+    async def pinch(
+        self,
+        cx: float,
+        cy: float,
+        scale: float,
+        duration_ms: int = 500,
+        spread: float = 120,
+        rotation: float = 0,
+    ) -> None:
+        """Two-finger gesture around (cx, cy): scale > 1 spreads the fingers (zoom in), < 1 pinches (zoom out);
+        rotation turns them by that many degrees (positive = clockwise on screen) at the same time."""
+        r0, r1 = spread / 2, spread * scale / 2
+        # A rotation is split into steps of at most 15° so the fingers follow the arc, not its chord.
+        steps = max(1, math.ceil(abs(rotation) / 15))
+
+        def point(sign: int, t: float) -> tuple[float, float]:
+            angle = math.radians(rotation * t)
+            r = r0 + (r1 - r0) * t
+            return cx + sign * r * math.cos(angle), cy + sign * r * math.sin(angle)
 
         def finger(name: str, sign: int) -> dict:
+            x0, y0 = point(sign, 0)
+            moves = []
+            for i in range(1, steps + 1):
+                x, y = point(sign, i / steps)
+                moves.append({"type": "pointerMove", "duration": duration_ms // steps, "x": x, "y": y})
             return {
                 "type": "pointer",
                 "id": name,
                 "parameters": {"pointerType": "touch"},
                 "actions": [
-                    {"type": "pointerMove", "duration": 0, "x": cx + sign * start, "y": cy},
+                    {"type": "pointerMove", "duration": 0, "x": x0, "y": y0},
                     {"type": "pointerDown", "button": 0},
                     {"type": "pause", "duration": 30},
-                    {"type": "pointerMove", "duration": duration_ms, "x": cx + sign * end, "y": cy},
+                    *moves,
                     {"type": "pointerUp", "button": 0},
                 ],
             }
@@ -180,6 +206,19 @@ class WDAClient:
         return await self.s("GET", f"/element/{eid}/rect")
 
     # ---------- input / buttons / apps ----------
+    async def active_element(self) -> str | None:
+        """ID of the element that has keyboard focus, or None."""
+        try:
+            v = await self.s("GET", "/element/active")
+        except WDAError:
+            return None
+        if not v:
+            return None
+        return v.get("ELEMENT") or v.get("element-6066-11e4-a52e-4f735466cecf")
+
+    async def clear(self, eid: str) -> None:
+        await self.s("POST", f"/element/{eid}/clear", {})
+
     async def type_text(self, text: str) -> None:
         await self.s("POST", "/wda/keys", {"value": list(text)})
 

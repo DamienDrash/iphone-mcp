@@ -501,13 +501,23 @@ async def iphone_tap_text(
         return _err(e)
 
 
+def system_swipe(panel: str, size: tuple[int, int]) -> tuple[float, float, float, float, int, int]:
+    """Start, end, duration and end hold of the edge swipe that opens an iOS system panel (Face ID iPhones)."""
+    sw, sh = size
+    return {
+        "notification_center": (sw * 0.3, 2, sw * 0.3, sh * 0.6, 400, 0),
+        "control_center": (sw - 24, 2, sw - 24, sh * 0.6, 400, 0),
+        "app_switcher": (sw / 2, sh - 2, sw / 2, sh * 0.6, 500, 700),
+    }[panel]
+
+
 @mcp.tool(annotations=_ann("Swipe", read_only=False))
 @recovering
 async def iphone_swipe(
-    x1: Annotated[float, Field(description="Start x in iOS points.", ge=0)],
-    y1: Annotated[float, Field(description="Start y in iOS points.", ge=0)],
-    x2: Annotated[float, Field(description="End x in iOS points.", ge=0)],
-    y2: Annotated[float, Field(description="End y in iOS points.", ge=0)],
+    x1: Annotated[float | None, Field(description="Start x in iOS points (not needed with system).", ge=0)] = None,
+    y1: Annotated[float | None, Field(description="Start y in iOS points (not needed with system).", ge=0)] = None,
+    x2: Annotated[float | None, Field(description="End x in iOS points (not needed with system).", ge=0)] = None,
+    y2: Annotated[float | None, Field(description="End y in iOS points (not needed with system).", ge=0)] = None,
     duration_ms: Annotated[
         int,
         Field(
@@ -516,14 +526,28 @@ async def iphone_swipe(
             le=5000,
         ),
     ] = 300,
+    system: Annotated[
+        Literal["notification_center", "control_center", "app_switcher"] | None,
+        Field(
+            description="Instead of coordinates, do the edge swipe that opens an iOS panel: 'notification_center' (notifications, from the top left), 'control_center' (from the top right), 'app_switcher' (from the bottom, with a pause). Close a panel with iphone_press_button('home')."
+        ),
+    ] = None,
 ) -> str:
-    """Drag one finger from a start point to an end point.
+    """Drag one finger from a start point to an end point, or open an iOS system panel.
 
-    Use it for precise drags: sliders, reordering, swiping a cell to reveal actions, pulling down the
-    notification area or a sheet. For plain scrolling of a list or page, iphone_scroll is simpler.
-    Swipes starting at the very bottom or top edge trigger iOS system gestures (home, notifications)."""
+    Use coordinates for precise drags: sliders, reordering, swiping a cell to reveal actions, a sheet. Use
+    `system` to read or act on notifications, toggles in Control Center, or to switch apps. For plain
+    scrolling of a list or page, iphone_scroll is simpler. Coordinate swipes starting at the very bottom or
+    top edge trigger iOS system gestures too."""
     try:
-        await (await _wda()).swipe(x1, y1, x2, y2, duration_ms)
+        w = await _wda()
+        if system:
+            sx1, sy1, sx2, sy2, ms, hold = system_swipe(system, await w.window_size())
+            await w.swipe(sx1, sy1, sx2, sy2, ms, hold)
+            return f"Opened {system.replace('_', ' ')} – check it with iphone_ui_tree." + await _lock_note(w)
+        if x1 is None or y1 is None or x2 is None or y2 is None:
+            return "Error: give x1, y1, x2 and y2, or system."
+        await w.swipe(x1, y1, x2, y2, duration_ms)
         return f"Swiped ({x1:.0f},{y1:.0f}) → ({x2:.0f},{y2:.0f}) in {duration_ms} ms."
     except WDAError as e:
         return _err(e)
@@ -564,30 +588,39 @@ async def iphone_scroll(
         return _err(e)
 
 
-@mcp.tool(annotations=_ann("Pinch to zoom", read_only=False))
+@mcp.tool(annotations=_ann("Pinch or rotate", read_only=False))
 @recovering
 async def iphone_pinch(
     scale: Annotated[
         float,
         Field(
-            description="Zoom factor: above 1 zooms in (fingers apart, e.g. 2.0), below 1 zooms out (fingers together, e.g. 0.5). Range 0.2–5.",
+            description="Zoom factor: above 1 zooms in (fingers apart, e.g. 2.0), below 1 zooms out (fingers together, e.g. 0.5), 1 keeps the distance (rotate only). Range 0.2–5.",
             ge=0.2,
             le=5,
         ),
-    ],
+    ] = 1.0,
     x: Annotated[float | None, Field(description="Center x in iOS points; default is the screen center.", ge=0)] = None,
     y: Annotated[float | None, Field(description="Center y in iOS points; default is the screen center.", ge=0)] = None,
+    rotation: Annotated[
+        float,
+        Field(
+            description="Turn the two fingers by this many degrees during the gesture, positive = clockwise (-180–180), e.g. to rotate a map or photo.",
+            ge=-180,
+            le=180,
+        ),
+    ] = 0,
 ) -> str:
-    """Two-finger pinch gesture to zoom in or out, e.g. in Maps, Photos or a web page.
+    """Two-finger gesture: pinch to zoom in or out and/or rotate, e.g. in Maps, Photos or a web page.
 
-    Use it only where content is zoomable; elsewhere it usually has no effect. Single-finger gestures are
-    covered by iphone_tap, iphone_swipe and iphone_scroll."""
+    Use it only where content is zoomable or rotatable; elsewhere it usually has no effect. Single-finger
+    gestures are covered by iphone_tap, iphone_swipe and iphone_scroll."""
     try:
         w = await _wda()
         sw, sh = await w.window_size()
         cx, cy = (x if x is not None else sw / 2), (y if y is not None else sh / 2)
-        await w.pinch(cx, cy, scale)
-        return f"Pinched ×{scale:g} around ({cx:.0f}, {cy:.0f})." + await _lock_note(w)
+        await w.pinch(cx, cy, scale, rotation=rotation)
+        turned = f", rotated {rotation:g}°" if rotation else ""
+        return f"Pinched ×{scale:g}{turned} around ({cx:.0f}, {cy:.0f})." + await _lock_note(w)
     except WDAError as e:
         return _err(e)
 
@@ -600,15 +633,34 @@ async def iphone_type(
     submit: Annotated[
         bool, Field(description="true presses Return after typing (send a search, confirm a form).")
     ] = False,
+    replace: Annotated[
+        bool,
+        Field(
+            description="true clears the focused field first, so the text replaces its content; with text '' it only clears the field."
+        ),
+    ] = False,
 ) -> str:
-    """Type text into the text field that currently has keyboard focus.
+    """Type text into the text field that currently has keyboard focus, or replace or clear its content.
 
     Tap the field first (iphone_tap_text or iphone_tap) so the keyboard is open; without a focused field
-    the call fails. Text is appended at the cursor, not replacing existing content. Never use it for
-    passwords or passcodes – ask the user to enter those."""
+    the call fails. By default text is appended at the cursor; replace=true empties the field first. Never
+    use it for passwords or passcodes – ask the user to enter those."""
     try:
-        await (await _wda()).type_text(text + ("\n" if submit else ""))
-        return f"Typed {len(text)} characters" + (" and pressed Return." if submit else ".")
+        w = await _wda()
+        done = []
+        if replace:
+            eid = await w.active_element()
+            if not eid:
+                return "Error: no text field has keyboard focus – tap the field first."
+            await w.clear(eid)
+            done.append("cleared the field")
+        if text or submit or not replace:
+            await w.type_text(text + ("\n" if submit else ""))
+            done.append(f"typed {len(text)} characters")
+            if submit:
+                done.append("pressed Return")
+        msg = " and ".join(done)
+        return msg[0].upper() + msg[1:] + "."
     except WDAError as e:
         return _err(e)
 
@@ -626,8 +678,9 @@ async def iphone_press_button(
     """Press a hardware button of the iPhone.
 
     iPhones have no back button: to go back inside an app, tap its back button (often top left, see
-    iphone_ui_tree). To leave an app use 'home'; to quit it completely use iphone_close_app; to lock the
-    screen use iphone_lock."""
+    iphone_ui_tree). To leave an app or close an open system panel use 'home'; to quit an app completely use
+    iphone_close_app; to lock the screen use iphone_lock. Notifications, Control Center and the app
+    switcher open with iphone_swipe(system=…)."""
     try:
         w = await _wda()
         if button == "home":
@@ -735,7 +788,9 @@ async def iphone_launch_app(app: APP) -> str:
     """Open an app, or bring it to the front if it is already running (its state is kept).
 
     Faster and more reliable than finding and tapping its icon on the home screen. To start an app fresh,
-    call iphone_close_app first. To open a specific page or link inside an app, use iphone_open_url."""
+    call iphone_close_app first. To open a specific page or link inside an app, use iphone_open_url. Device
+    settings (Wi-Fi, brightness, appearance, …) are changed in the Settings app ('settings'), or quickly
+    via iphone_swipe(system='control_center'); ask the user before changing account or security settings."""
     try:
         bid = await resolve_app(app)
         w = await _wda()

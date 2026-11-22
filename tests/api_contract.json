@@ -73,10 +73,15 @@
   },
   "iphone_pinch": {
     "params": {
+      "rotation": {
+        "type": "number",
+        "enum": null,
+        "required": false
+      },
       "scale": {
         "type": "number",
         "enum": null,
-        "required": true
+        "required": false
       },
       "x": {
         "type": [
@@ -167,25 +172,45 @@
         "enum": null,
         "required": false
       },
-      "x1": {
-        "type": "number",
+      "system": {
+        "type": [
+          "string",
+          "null"
+        ],
         "enum": null,
-        "required": true
+        "required": false
+      },
+      "x1": {
+        "type": [
+          "number",
+          "null"
+        ],
+        "enum": null,
+        "required": false
       },
       "x2": {
-        "type": "number",
+        "type": [
+          "number",
+          "null"
+        ],
         "enum": null,
-        "required": true
+        "required": false
       },
       "y1": {
-        "type": "number",
+        "type": [
+          "number",
+          "null"
+        ],
         "enum": null,
-        "required": true
+        "required": false
       },
       "y2": {
-        "type": "number",
+        "type": [
+          "number",
+          "null"
+        ],
         "enum": null,
-        "required": true
+        "required": false
       }
     },
     "read_only": false,
@@ -244,6 +269,11 @@
   },
   "iphone_type": {
     "params": {
+      "replace": {
+        "type": "boolean",
+        "enum": null,
+        "required": false
+      },
       "submit": {
         "type": "boolean",
         "enum": null,
