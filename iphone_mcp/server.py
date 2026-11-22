@@ -501,13 +501,16 @@ async def iphone_tap_text(
         return _err(e)
 
 
+CONTROL_CENTER_ID = "cc-root-folder-view"
+
+
 def system_swipe(panel: str, size: tuple[int, int]) -> tuple[float, float, float, float, int, int]:
     """Start, end, duration and end hold of the edge swipe that opens an iOS system panel (Face ID iPhones)."""
     sw, sh = size
     return {
         "notification_center": (sw * 0.3, 2, sw * 0.3, sh * 0.6, 400, 0),
-        "control_center": (sw - 24, 2, sw - 24, sh * 0.6, 400, 0),
-        "app_switcher": (sw / 2, sh - 2, sw / 2, sh * 0.6, 500, 700),
+        # A longer drag pages on to the next Control Center page (tested on iOS 26).
+        "control_center": (sw - 24, 2, sw - 24, sh * 0.35, 400, 0),
     }[panel]
 
 
@@ -527,24 +530,37 @@ async def iphone_swipe(
         ),
     ] = 300,
     system: Annotated[
-        Literal["notification_center", "control_center", "app_switcher"] | None,
+        Literal["notification_center", "control_center"] | None,
         Field(
-            description="Instead of coordinates, do the edge swipe that opens an iOS panel: 'notification_center' (notifications, from the top left), 'control_center' (from the top right), 'app_switcher' (from the bottom, with a pause). Close a panel with iphone_press_button('home')."
+            description="Instead of coordinates, do the edge swipe that opens an iOS panel: 'notification_center' (notifications, from the top left) or 'control_center' (toggles, from the top right). Close a panel with iphone_press_button('home')."
         ),
     ] = None,
 ) -> str:
     """Drag one finger from a start point to an end point, or open an iOS system panel.
 
     Use coordinates for precise drags: sliders, reordering, swiping a cell to reveal actions, a sheet. Use
-    `system` to read or act on notifications, toggles in Control Center, or to switch apps. For plain
+    `system` to read or act on notifications or toggles in Control Center. To switch apps use
+    iphone_launch_app (iOS ignores synthesized swipes from the bottom edge, so there is no app switcher). For plain
     scrolling of a list or page, iphone_scroll is simpler. Coordinate swipes starting at the very bottom or
     top edge trigger iOS system gestures too."""
     try:
         w = await _wda()
         if system:
             sx1, sy1, sx2, sy2, ms, hold = system_swipe(system, await w.window_size())
-            await w.swipe(sx1, sy1, sx2, sy2, ms, hold)
-            return f"Opened {system.replace('_', ' ')} – check it with iphone_ui_tree." + await _lock_note(w)
+            # iOS sometimes ignores the edge swipe (often right after a panel was closed), so Control
+            # Center, which has a language-independent identifier, is checked and the swipe repeated.
+            for attempt in range(3):
+                await w.swipe(sx1, sy1, sx2, sy2, ms, hold)
+                if system != "control_center":
+                    break
+                await asyncio.sleep(0.8)
+                if await w.find_elements("accessibility id", CONTROL_CENTER_ID):
+                    break
+                if attempt == 2:
+                    return "Error: Control Center did not open after 3 swipes – check with iphone_screenshot."
+            # iOS reports the notification center as locked (it is the lock screen's cover sheet).
+            note = "" if system == "notification_center" else await _lock_note(w)
+            return f"Opened {system.replace('_', ' ')} – check it with iphone_ui_tree." + note
         if x1 is None or y1 is None or x2 is None or y2 is None:
             return "Error: give x1, y1, x2 and y2, or system."
         await w.swipe(x1, y1, x2, y2, duration_ms)
@@ -679,8 +695,8 @@ async def iphone_press_button(
 
     iPhones have no back button: to go back inside an app, tap its back button (often top left, see
     iphone_ui_tree). To leave an app or close an open system panel use 'home'; to quit an app completely use
-    iphone_close_app; to lock the screen use iphone_lock. Notifications, Control Center and the app
-    switcher open with iphone_swipe(system=…)."""
+    iphone_close_app; to lock the screen use iphone_lock. Notifications and Control Center open with
+    iphone_swipe(system=…)."""
     try:
         w = await _wda()
         if button == "home":

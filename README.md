@@ -169,7 +169,7 @@ flowchart LR
 | `iphone_wait_for` | Wait until a text appears (or disappears) – no guessing of delays |
 | `iphone_tap` | Tap, double-tap or long-press at coordinates |
 | `iphone_tap_text` | Tap the element showing a given text |
-| `iphone_swipe` · `iphone_scroll` | Swipe / scroll in any direction; open notifications, Control Center or the app switcher |
+| `iphone_swipe` · `iphone_scroll` | Swipe / scroll in any direction; open notifications or Control Center |
 | `iphone_pinch` | Two-finger pinch to zoom in or out, and rotate |
 | `iphone_type` | Type into the focused field, replace or clear its content, optionally press Return |
 | `iphone_press_button` | Home, volume up, volume down |

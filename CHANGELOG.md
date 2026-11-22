@@ -6,7 +6,8 @@ Additions from the Glama tool review, taken into 1.0 on purpose (the only interf
 Every new parameter is optional, so existing calls work unchanged.
 
 - `iphone_type` can **replace or clear** the focused field (`replace=true`; with empty text it only clears).
-- `iphone_swipe` opens **notifications, Control Center or the app switcher** (`system=…`) without coordinates.
+- `iphone_swipe` opens **notifications or Control Center** (`system=…`) without coordinates. Tested on a real
+  iPhone 15 Pro Max (iOS 26), like replacing text and rotating.
 - `iphone_pinch` can **rotate** with two fingers (`rotation` in degrees); `scale` now defaults to 1.
 - Tool descriptions say where device settings are changed (Settings app, Control Center) and how to close a
   system panel.
