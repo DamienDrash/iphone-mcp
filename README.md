@@ -282,9 +282,9 @@ iphone-mcp writes files only to these places, never to your project:
 iphone-mcp follows [Semantic Versioning](https://semver.org). The public interface is the set of **MCP tools,
 their parameters and annotations**, the **CLI commands** and the **environment variables** documented here.
 
-- **0.9 is the release candidate for 1.0** (now): the interface is frozen; until 1.0 only fixes and
-  documentation change. Earlier 0.x releases could still rename or merge tools (see the CHANGELOG).
-- **From 1.0 on:** tools and parameters are only removed or renamed in a new major version. A tool that is
+- **1.0 is the first stable release** (2026-11-23). Earlier 0.x releases could still rename or merge tools
+  (see the CHANGELOG).
+- **From 1.0 on (now):** tools and parameters are only removed or renamed in a new major version. A tool that is
   going away is first marked *deprecated* in its description and the CHANGELOG, and keeps working for at least
   one minor release. New optional parameters and new tools come in minor releases.
 - The interface is pinned by a snapshot test (`tests/api_contract.json`), so no change slips through by accident.
