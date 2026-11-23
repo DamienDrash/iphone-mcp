@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 – 2026-11-23 · first stable release
+
+The tool interface is now stable: from here on tools and parameters are only removed or renamed in a new
+major version (README "Versioning").
 
 Additions from the Glama tool review, taken into 1.0 on purpose (the only interface change after the 0.9 freeze).
 Every new parameter is optional, so existing calls work unchanged.

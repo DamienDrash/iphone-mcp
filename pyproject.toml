@@ -10,7 +10,7 @@ authors = [{ name = "Damien Frigewski" }]
 maintainers = [{ name = "Damien Frigewski" }]
 keywords = ["mcp", "model-context-protocol", "iphone", "ios", "automation", "webdriveragent", "xcuitest", "claude", "codex", "ai-agent"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Operating System :: MacOS",
