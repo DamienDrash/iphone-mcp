@@ -23,7 +23,8 @@
 ---
 
 <div align="center">
-<img src="https://raw.githubusercontent.com/DamienDrash/iphone-mcp/main/assets/demo.svg" alt="Example: the agent opens Settings and reads which Wi-Fi the iPhone uses" width="760">
+<img src="https://raw.githubusercontent.com/DamienDrash/iphone-mcp/main/assets/demo.gif" alt="Recorded on a real iPhone 15 Pro Max: the agent opens the Calculator, reads the keys with iphone_ui_tree and taps 128 × 42 = 5376" width="760">
+<br><sub>Recorded on a real iPhone 15 Pro Max over Wi-Fi – every frame is a screenshot taken through iphone-mcp.</sub>
 </div>
 
 ## ✨ Highlights
