@@ -226,7 +226,9 @@ def serve_http(host: str = "127.0.0.1", port: int = 8765, new_token: bool = Fals
     for name in ("mcp.server.streamable_http", "mcp.server.streamable_http_manager"):
         logging.getLogger(name).setLevel(logging.WARNING)
 
-    paths.register_client(os.getpid())
+    from .server import conn
+
+    paths.register_client(os.getpid(), conn.udid)  # same iPhone key as the cleanup in server.py
     try:
         uvicorn.run(build_app(token), host=host, port=port, log_level="warning")
     finally:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import shutil
 import subprocess
 import sys
@@ -12,7 +13,7 @@ from . import __version__, paths
 
 
 def _doctor() -> int:
-    from .connection import Connection, coredevice_devices
+    from .connection import Connection, coredevice_devices, usbmux_devices_all
     from .setup_wda import find_teams
 
     ok = True
@@ -39,6 +40,18 @@ def _doctor() -> int:
             if teams
             else "No 'Apple Development' certificate (Xcode → Settings → Accounts)",
         )
+    conn = Connection()
+    configured = paths.configured_devices()
+
+    def tags(udid: str | None) -> str:
+        marks = []
+        if udid and udid == conn.udid:
+            marks.append("controlled by this config")
+        if udid in configured:
+            marks.append("set up")
+        return f" [{', '.join(marks)}]" if marks else ""
+
+    if paths.IS_MAC:
         devices = asyncio.run(coredevice_devices())
         if not devices:
             line(False, "No iPhone known to Xcode – connect it by cable once and tap 'Trust'")
@@ -48,21 +61,28 @@ def _doctor() -> int:
             via = {"wired": "cable", "localNetwork": "Wi-Fi"}.get(transport, transport)
             line(
                 reach,
-                f"{d['name']} ({d.get('model')}, iOS {d.get('os')}): {d.get('tunnelState')} via {via}, developer mode {d.get('developerMode')}",
+                f"{d['name']} ({d.get('model')}, iOS {d.get('os')}), UDID {d.get('udid')}: {d.get('tunnelState')} "
+                f"via {via}, developer mode {d.get('developerMode')}{tags(d.get('udid'))}",
             )
     else:
         line(None, "Not macOS: WebDriverAgent is launched without Xcode (pymobiledevice3)")
-    conn = Connection()
-    for dev in asyncio.run(conn.usbmux_devices()):
-        line(True, f"usbmux sees {dev.serial} via {dev.connection_type}")
+    for dev in asyncio.run(usbmux_devices_all()):
+        line(True, f"usbmux sees {dev.serial} via {dev.connection_type}{tags(dev.serial)}")
+    if conn.udid:
+        line(True, f"This config controls {conn.udid} (from {conn.udid_source})")
+    if len(configured) > 1 and not os.environ.get("IPHONE_MCP_UDID"):
+        line(None, f"{len(configured)} iPhones set up: give each MCP server its own IPHONE_MCP_UDID")
 
-    cfg = paths.load(paths.WDA_FILE)
+    cfg = paths.wda_config(conn.udid)
     launcher = conn.launcher
     if launcher == "xcodebuild":
         built = bool(list(paths.WDA_DERIVED.glob("Build/Products/*.xctestrun")))
+        names = ", ".join(f"{d['name']} ({u})" if d.get("name") else u for u, d in configured.items()) or cfg.get(
+            "udid"
+        )
         line(
             built,
-            f"WebDriverAgent built with Xcode for {cfg.get('udid')} (team {cfg.get('team')})"
+            f"WebDriverAgent built with Xcode (team {cfg.get('team')}) for: {names}"
             if built
             else "WebDriverAgent not built yet – run: iphone-mcp setup",
         )

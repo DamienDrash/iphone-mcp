@@ -27,4 +27,4 @@ or drive the server from any MCP client with `uv --directory /path/to/iphone-mcp
 - Never add anything that types passwords, passcodes or payment data on the user's behalf.
 - Device-specific behaviour (iOS version, locale) belongs behind identifiers, not on-screen text.
 - When you report a bug, include the output of `uv run iphone-mcp doctor` and the end of
-  `~/Library/Logs/iphone-mcp/wda.log` (remove anything personal first).
+  `~/Library/Logs/iphone-mcp/wda-<udid>.log` (remove anything personal first).

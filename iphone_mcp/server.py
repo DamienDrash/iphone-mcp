@@ -195,18 +195,24 @@ def _ann(title: str, *, read_only: bool, destructive: bool = False, idempotent: 
 # ---------------------------------------------------------------- connection
 @mcp.tool(annotations=_ann("iPhone status", read_only=True, idempotent=True))
 async def iphone_status() -> str:
-    """Report the iPhone connection and state: device and iOS version, connection route (USB or Wi-Fi),
-    screen size in points, whether it is locked, whether keep-awake is on, and the foreground app.
+    """Report the iPhone connection and state: which iPhone this server controls (name, model, UDID) and its
+    iOS version, connection route (USB or Wi-Fi), screen size in points, whether it is locked, whether
+    keep-awake is on, and the foreground app.
 
     Use it first in a session and whenever an action fails, to decide whether to call iphone_start_agent
-    (no connection) or ask the user to unlock (locked). Reads only; changes nothing on the phone."""
-    lines = []
+    (no connection) or ask the user to unlock (locked). With several iPhones there is one server per iPhone;
+    the UDID tells which one this is. Reads only; changes nothing on the phone."""
+    lines = [
+        f"Controls iPhone: {conn.udid} (from {conn.udid_source})"
+        if conn.udid
+        else "Controls iPhone: the first one found (no UDID set; see IPHONE_MCP_UDID)"
+    ]
     info = await conn.coredevice_info()
     if info:
         transport = str(info.get("transportType") or "-")
         via = {"wired": "cable", "localNetwork": "Wi-Fi"}.get(transport, transport)
         lines.append(
-            f"Device: {info.get('name')} ({info.get('model')}, iOS {info.get('os')}), Xcode link: {info.get('tunnelState')} via {via}"
+            f"Device: {info.get('name')} ({info.get('model')}, iOS {info.get('os')}, UDID {info.get('udid')}), Xcode link: {info.get('tunnelState')} via {via}"
         )
     try:
         w = await _wda()
@@ -856,13 +862,13 @@ async def iphone_open_url(
 
 
 def _cleanup_on_exit() -> None:
-    """Stop WebDriverAgent when the last iphone-mcp server ends, so port 8100 on the iPhone is not left open.
+    """Stop WebDriverAgent when the last iphone-mcp server for this iPhone ends, so port 8100 on the iPhone is not left open.
 
     Not if other agent windows still use it, if it was started by hand (`iphone-mcp start`), or with
     IPHONE_MCP_STOP_ON_EXIT=0. A runner launched without Xcode ends together with this process anyway."""
-    others = paths.unregister_client(os.getpid())
+    others = paths.unregister_client(os.getpid(), conn.udid)
     stop = os.environ.get("IPHONE_MCP_STOP_ON_EXIT", "1").lower() not in ("0", "false", "no", "off")
-    state = paths.load(paths.STATE_FILE)
+    state = paths.device_state(conn.udid)
     if stop and not others and state.get("wda_pid") and state.get("wda_owner", "server") == "server":
         try:
             asyncio.run(Connection().stop_wda())
@@ -871,7 +877,7 @@ def _cleanup_on_exit() -> None:
 
 
 def serve() -> None:
-    paths.register_client(os.getpid())
+    paths.register_client(os.getpid(), conn.udid)
     # Clients usually end a stdio server by closing stdin or with SIGTERM; both must run the cleanup.
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     try:

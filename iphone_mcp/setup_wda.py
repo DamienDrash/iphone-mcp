@@ -28,6 +28,22 @@ class SetupError(RuntimeError):
     pass
 
 
+def several_iphones_hint(udid: str) -> str:
+    """After setup: how to run one server per iPhone once more than one iPhone is set up."""
+    devices = paths.configured_devices()
+    if len(devices) < 2:
+        return ""
+    listing = "\n".join(
+        f"  {d.get('name') or 'iPhone'}: {u}{'  (default, just set up)' if u == udid else ''}"
+        for u, d in devices.items()
+    )
+    return (
+        f"\niPhones set up so far:\n{listing}\n"
+        "A server without IPHONE_MCP_UDID controls the default one. Give each iPhone its own server, e.g.:\n"
+        "  claude mcp add iphone-a -e IPHONE_MCP_UDID=<udid-a> -- uvx iphone-mcp"
+    )
+
+
 def _run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, capture_output=True, text=True, **kw)
 
@@ -186,7 +202,7 @@ def run_without_xcode(udid: str | None, ipa: str | None) -> int:
             print(SIGNING_HELP.format(ipa=out))
             return 0
         device, bundle = install_ipa(Path(ipa).expanduser(), udid or os.environ.get("IPHONE_MCP_UDID"))
-        paths.update(paths.WDA_FILE, udid=device, runner_bundle_id=bundle, launcher="pymobiledevice3", wda_ref=WDA_REF)
+        paths.save_device_setup(device, runner_bundle_id=bundle, launcher="pymobiledevice3", wda_ref=WDA_REF)
     except SetupError as e:
         print(f"✗ {e}", file=sys.stderr)
         return 1
@@ -194,6 +210,8 @@ def run_without_xcode(udid: str | None, ipa: str | None) -> int:
     print("  On the iPhone: Settings → General → VPN & Device Management → trust your developer certificate,")
     print("  Settings → Privacy & Security → Developer Mode: on, Settings → Developer → Enable UI Automation: on.")
     print("  Check with: iphone-mcp doctor   ·   try it with: iphone-mcp start")
+    if hint := several_iphones_hint(device):
+        print(hint)
     print(SPONSOR_LINE)
     return 0
 
@@ -230,7 +248,7 @@ def run(
                 raise SetupError(f"Several teams found, pick one with --team: {', '.join(teams)}")
             team = teams[0]
 
-        previous = paths.load(paths.WDA_FILE)
+        previous = paths.wda_config(dev["udid"])
         bundle_id = (
             bundle_id
             or os.environ.get("IPHONE_MCP_BUNDLE_ID")
@@ -243,9 +261,9 @@ def run(
         print(f"→ Bundle ID: {bundle_id}")
         ensure_source()
         build(dev["udid"], team, bundle_id)
-        paths.update(
-            paths.WDA_FILE,
-            udid=dev["udid"],
+        paths.save_device_setup(
+            dev["udid"],
+            name=dev.get("name"),
             team=team,
             bundle_id=bundle_id,
             derived_data=str(paths.WDA_DERIVED),
@@ -262,5 +280,7 @@ def run(
     print("  • Settings → Developer → Enable UI Automation: on")
     print("  • First start only: Settings → General → VPN & Device Management → trust the developer app")
     print("Optional, for Wi-Fi: Xcode → Window → Devices and Simulators → your iPhone → 'Connect via network'.")
+    if hint := several_iphones_hint(dev["udid"]):
+        print(hint)
     print(SPONSOR_LINE)
     return 0
