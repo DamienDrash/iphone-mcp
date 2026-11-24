@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- **Several iPhones at the same time**, one MCP server per iPhone (`IPHONE_MCP_UDID`, README *Several iPhones*).
+  Runtime state (WebDriverAgent process, owner, last Wi-Fi IP, connected servers) is now kept per UDID in
+  `state.json`, so a server only waits for, reuses or stops the WebDriverAgent of its own iPhone. Before, a
+  second server for another iPhone replaced the first one's WebDriverAgent after 60 s.
+- `iphone-mcp setup --udid …` keeps an entry per iPhone in `wda.json`; the last set-up iPhone stays the default
+  for servers without `IPHONE_MCP_UDID`, as before.
+- `iphone-mcp doctor` lists every connected iPhone with its UDID and marks which ones are set up and which one
+  this configuration controls.
+- `iphone_status` names the iPhone it controls (UDID and where it came from). No tool or parameter changed.
+- The runtime log is now one per iPhone: `wda-<udid>.log`.
+- Existing single-iPhone `state.json` and `wda.json` from 1.0 keep working and are migrated on the next write.
+- Two physical iPhones at once could not be tested yet (only one was available); covered by unit tests.
+
 ## 1.0.0 – 2026-11-23 · first stable release
 
 The tool interface is now stable: from here on tools and parameters are only removed or renamed in a new

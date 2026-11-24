@@ -234,6 +234,32 @@ IPHONE_MCP_WDA_URL=http://<iphone-ip>:8100 uvx iphone-mcp
 [open an issue](https://github.com/DamienDrash/iphone-mcp/issues/new) with the output of `iphone-mcp doctor` and
 `iphone-mcp selftest`, even if everything works.
 
+## 📱 Several iPhones
+
+One iphone-mcp server controls one iPhone. To drive several iPhones at the same time, run one server per
+iPhone and tell each which one it is with `IPHONE_MCP_UDID`:
+
+```bash
+iphone-mcp doctor                  # lists every connected iPhone with its UDID
+iphone-mcp setup --udid <udid-a>   # once per iPhone
+iphone-mcp setup --udid <udid-b>
+claude mcp add iphone-a -e IPHONE_MCP_UDID=<udid-a> -- uvx iphone-mcp
+claude mcp add iphone-b -e IPHONE_MCP_UDID=<udid-b> -- uvx iphone-mcp
+```
+
+- Each iPhone has its own WebDriverAgent, its own runtime state and its own log (`wda-<udid>.log`). A server
+  only ever waits for, reuses or stops the WebDriverAgent of its own iPhone, so starting `iphone-b` leaves
+  `iphone-a` alone. Ending the last server of one iPhone stops only that iPhone's agent.
+- `setup` keeps an entry per iPhone. With Xcode, all iPhones share one signed build (same team and bundle ID);
+  running `setup` for a new iPhone adds it to the signing profile. Run `setup` for every iPhone before you
+  start the servers, since it rebuilds that shared build.
+- A server without `IPHONE_MCP_UDID` controls the iPhone you ran `setup` for last, as before.
+- `iphone_status` names the iPhone (name, model and UDID) a server controls.
+- Separate config directories per iPhone (`IPHONE_MCP_CONFIG_DIR`) are no longer needed.
+
+Tested so far with one physical iPhone per server; two physical iPhones at once have not been tested yet.
+Reports are welcome.
+
 ## ⌨️ Command line
 
 | Command | |
@@ -249,7 +275,7 @@ IPHONE_MCP_WDA_URL=http://<iphone-ip>:8100 uvx iphone-mcp
 
 | Environment variable | Meaning |
 |---|---|
-| `IPHONE_MCP_UDID` | Pick a device when several iPhones are connected |
+| `IPHONE_MCP_UDID` | The iPhone this server controls; one server per iPhone (see [Several iPhones](#-several-iphones)) |
 | `IPHONE_MCP_MODE` | `auto` (default), `usb` or `wifi` |
 | `IPHONE_MCP_WDA_URL` | Fixed WebDriverAgent address, e.g. `http://192.168.1.42:8100` |
 | `IPHONE_MCP_KEEP_AWAKE` | `1` (default) keeps the screen awake while connected, `0` turns it off |
@@ -311,7 +337,7 @@ See [SECURITY.md](SECURITY.md) for how to report vulnerabilities.
 | Worked yesterday, not today (free Apple ID) | The signature expired after 7 days – run `iphone-mcp setup` again. |
 | Runner exits immediately | Settings → Developer → **Enable UI Automation**, and trust the developer app under General → VPN & Device Management. |
 
-Logs: `~/Library/Logs/iphone-mcp/wda.log` (runtime) and `build.log` (setup).
+Logs: `~/Library/Logs/iphone-mcp/wda-<udid>.log` (runtime, one per iPhone) and `build.log` (setup).
 
 ## 🤝 Contributing
 

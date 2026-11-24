@@ -89,12 +89,25 @@ async def coredevice_devices() -> list[dict]:
     return result
 
 
+async def usbmux_devices_all() -> list:
+    """Every iPhone usbmux sees (cable or Wi-Fi sync), USB first. Empty without pymobiledevice3/usbmuxd."""
+    try:
+        from pymobiledevice3 import usbmux
+
+        devices = await usbmux.list_devices()
+    except Exception:
+        return []
+    return sorted(devices, key=lambda d: 0 if d.connection_type == "USB" else 1)
+
+
 class Connection:
     """Holds exactly one live connection to WebDriverAgent."""
 
     def __init__(self) -> None:
         self.mode = os.environ.get("IPHONE_MCP_MODE", "auto").lower()  # auto | usb | wifi
-        self.udid = os.environ.get("IPHONE_MCP_UDID") or paths.load(paths.WDA_FILE).get("udid")
+        env_udid = os.environ.get("IPHONE_MCP_UDID")
+        self.udid_source = "IPHONE_MCP_UDID" if env_udid else "setup default"
+        self.udid = env_udid or paths.load(paths.WDA_FILE).get("udid")
         self.manual_url = os.environ.get("IPHONE_MCP_WDA_URL")
         self.client: WDAClient | None = None
         self.transport: str = "-"
@@ -103,7 +116,7 @@ class Connection:
         self._lock = asyncio.Lock()
         self._proc: subprocess.Popen | None = None
         self.owner = "server"  # who starts WebDriverAgent: "server" (stopped with the last server) or "cli"
-        cfg = paths.load(paths.WDA_FILE)
+        cfg = paths.wda_config(self.udid)
         default_launcher = (
             "xcodebuild" if paths.IS_MAC and cfg.get("launcher", "xcodebuild") == "xcodebuild" else "pymobiledevice3"
         )
@@ -121,15 +134,8 @@ class Connection:
         return None
 
     async def usbmux_devices(self) -> list:
-        try:
-            from pymobiledevice3 import usbmux
-
-            devices = await usbmux.list_devices()
-        except Exception:
-            return []
-        if self.udid:
-            devices = [d for d in devices if d.serial == self.udid]
-        return sorted(devices, key=lambda d: 0 if d.connection_type == "USB" else 1)
+        devices = await usbmux_devices_all()
+        return [d for d in devices if d.serial == self.udid] if self.udid else devices
 
     async def _start_forward(self, serial: str, connection_type: str) -> int:
         from pymobiledevice3.tcp_forwarder import UsbmuxTcpForwarder
@@ -163,7 +169,7 @@ class Connection:
             return None
         ip = (st.get("ios") or {}).get("ip") if isinstance(st, dict) else None
         if ip:
-            paths.update(paths.STATE_FILE, last_ip=ip)
+            paths.update_device_state(self.udid, last_ip=ip)
         if self.client is not None and self.client is not client:
             await self.client.close()
         self.client, self.transport = client, transport
@@ -241,7 +247,7 @@ class Connection:
                     await self._stop_forward()
 
             if self.mode in ("auto", "wifi"):
-                ip = paths.load(paths.STATE_FILE).get("last_ip")
+                ip = paths.device_state(self.udid).get("last_ip")
                 if ip:
                     if c := await self._try(f"http://{url_host(ip)}:{WDA_PORT}", f"Wi-Fi ({ip})"):
                         return c
@@ -262,7 +268,8 @@ class Connection:
     def wda_running_pid(self) -> int | None:
         if self._proc is not None:
             return self._proc.pid if self._proc.poll() is None else None
-        pid = paths.load(paths.STATE_FILE).get("wda_pid")
+        # Only this iPhone's xcodebuild: a server for another iPhone must never wait for or replace it.
+        pid = paths.device_state(self.udid).get("wda_pid")
         return pid if pid and paths.pid_alive(pid) else None
 
     async def start_wda(self, timeout: float = 150) -> str:
@@ -274,8 +281,9 @@ class Connection:
 
         if self.launcher != "xcodebuild":
             return await self._start_without_xcode(timeout)
-        cfg = paths.load(paths.WDA_FILE)
+        cfg = paths.wda_config(self.udid)
         udid = self.udid or cfg.get("udid")
+        wda_log = paths.wda_log(udid)
         runs = sorted(glob.glob(os.path.join(cfg.get("derived_data") or "", "Build/Products/*.xctestrun")))
         if not runs or not udid:
             raise WDAError("WebDriverAgent is not built yet. Run once in a terminal: iphone-mcp setup")
@@ -286,7 +294,7 @@ class Connection:
         foreign = self.wda_running_pid() if self._proc is None else None
 
         def launch() -> None:
-            log = open(paths.WDA_LOG, "a")
+            log = open(wda_log, "a")
             self._proc = subprocess.Popen(
                 ["xcodebuild", "test-without-building", "-xctestrun", runs[-1], "-destination", f"id={udid}"],
                 stdout=log,
@@ -294,11 +302,11 @@ class Connection:
                 stdin=subprocess.DEVNULL,
                 start_new_session=True,
             )
-            paths.update(paths.STATE_FILE, wda_pid=self._proc.pid, wda_owner=self.owner)
+            paths.update_device_state(self.udid, wda_pid=self._proc.pid, wda_owner=self.owner)
 
         if not self.wda_running_pid():  # an xcodebuild of ours may still be waiting, e.g. for an unlock
             paths.LOG_DIR.mkdir(parents=True, exist_ok=True)
-            paths.WDA_LOG.write_text("")
+            wda_log.write_text("")
             launch()
         attempts = 1
         loop = asyncio.get_running_loop()
@@ -314,7 +322,7 @@ class Connection:
                     foreign = None
                     launch()
                     continue
-                log = paths.WDA_LOG.read_text(errors="ignore")
+                log = wda_log.read_text(errors="ignore")
                 if log.rfind("because the device is locked") > log.rfind("ServerURLHere"):
                     # xcodebuild keeps waiting and continues by itself once the iPhone is unlocked
                     raise WDAError(
@@ -324,19 +332,19 @@ class Connection:
                 if not self.wda_running_pid():
                     # e.g. the cable flaked or the Wi-Fi tunnel was still coming up: retry
                     if attempts >= 4:
-                        tail = paths.WDA_LOG.read_text()[-1500:]
-                        raise WDAError(f"xcodebuild exited {attempts} times. End of {paths.WDA_LOG}:\n{tail}") from None
+                        tail = wda_log.read_text(errors="ignore")[-1500:]
+                        raise WDAError(f"xcodebuild exited {attempts} times. End of {wda_log}:\n{tail}") from None
                     attempts += 1
                     await asyncio.sleep(3)
                     launch()
                 await asyncio.sleep(3)
-        raise WDAError(f"WebDriverAgent not ready after {timeout:.0f}s. Log: {paths.WDA_LOG}")
+        raise WDAError(f"WebDriverAgent not ready after {timeout:.0f}s. Log: {wda_log}")
 
     async def _start_without_xcode(self, timeout: float) -> str:
         """Launch through pymobiledevice3 (no Xcode; works on Linux and Windows too)."""
         from .xctest_launcher import XCTestLauncher
 
-        cfg = paths.load(paths.WDA_FILE)
+        cfg = paths.wda_config(self.udid)
         if self._xct is None or not self._xct.running:
             if self._xct is not None:
                 await self._xct.stop()
@@ -398,5 +406,5 @@ class Connection:
             except subprocess.TimeoutExpired:
                 pass
         self._proc = None
-        paths.update(paths.STATE_FILE, wda_pid=None)
+        paths.update_device_state(self.udid, wda_pid=None)
         return "WebDriverAgent stopped."
