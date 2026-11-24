@@ -6,7 +6,7 @@
 <br>
 
 [![CI](https://github.com/DamienDrash/iphone-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/DamienDrash/iphone-mcp/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/iphone-mcp?color=7c5cff&label=PyPI&cacheSeconds=3600)](https://pypi.org/project/iphone-mcp/)
+[![PyPI](https://img.shields.io/pypi/v/iphone-mcp?label=PyPI&color=7c5cff&cacheSeconds=3600)](https://pypi.org/project/iphone-mcp/)
 [![Python](https://img.shields.io/pypi/pyversions/iphone-mcp?color=22d3ee&cacheSeconds=3600)](https://pypi.org/project/iphone-mcp/)
 [![MCP](https://img.shields.io/badge/MCP-server-7c5cff)](https://modelcontextprotocol.io)
 [![DamienDrash/iphone-mcp MCP server](https://glama.ai/mcp/servers/DamienDrash/iphone-mcp/badges/score.svg)](https://glama.ai/mcp/servers/DamienDrash/iphone-mcp)
