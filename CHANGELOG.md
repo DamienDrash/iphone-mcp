@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **Remote access:** `iphone-mcp serve --http` serves the MCP server over Streamable HTTP at `/mcp`, so an agent
+  on another machine can control the iPhone through the computer next to it (README "Remote access"). Every
+  request needs `Authorization: Bearer <token>` (`IPHONE_MCP_TOKEN`, or a generated token stored with mode 0600;
+  `--new-token` replaces it). Listens on 127.0.0.1:8765 unless `--host`/`--port` say otherwise. Tool calls and
+  rejected requests are logged to `remote.log` (time, tool, client; no arguments). Tested on a real
+  iPhone 15 Pro Max (iOS 26.6.2) with a second client on the same Mac.
+
 ## 1.0.0 – 2026-11-23 · first stable release
 
 The tool interface is now stable: from here on tools and parameters are only removed or renamed in a new
