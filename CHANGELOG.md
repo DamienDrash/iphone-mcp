@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 – 2026-11-24 · remote access and several iPhones
 
 - **Remote access:** `iphone-mcp serve --http` serves the MCP server over Streamable HTTP at `/mcp`, so an agent
   on another machine can control the iPhone through the computer next to it (README "Remote access"). Every
