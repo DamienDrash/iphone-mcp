@@ -1,4 +1,4 @@
-"""Command line: `iphone-mcp [serve|setup|doctor|start|stop]`."""
+"""Command line: `iphone-mcp [serve [--http]|setup|doctor|selftest|start|stop]`."""
 
 from __future__ import annotations
 
@@ -140,7 +140,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--version", action="version", version=__version__)
     sub = parser.add_subparsers(dest="command")
-    sub.add_parser("serve", help="run the MCP server on stdio (default)")
+    p_serve = sub.add_parser("serve", help="run the MCP server on stdio (default), or over HTTP for remote access")
+    p_serve.add_argument(
+        "--http",
+        action="store_true",
+        help="serve Streamable HTTP at /mcp with a bearer token, for agents on other machines (README 'Remote access')",
+    )
+    p_serve.add_argument("--host", help="address to listen on with --http (default 127.0.0.1; 0.0.0.0 = all networks)")
+    p_serve.add_argument("--port", type=int, help="port for --http (default 8765)")
+    p_serve.add_argument("--new-token", action="store_true", help="with --http: replace the stored access token")
     p_setup = sub.add_parser("setup", help="build and install WebDriverAgent on your iPhone (macOS)")
     p_setup.add_argument("--udid", help="device UDID if several iPhones are connected")
     p_setup.add_argument("--team", help="Apple team ID used for signing")
@@ -171,6 +179,12 @@ def main(argv: list[str] | None = None) -> int:
         return _start()
     if args.command == "stop":
         return _stop()
+    if args.command == "serve" and args.http:
+        from .remote import serve_http
+
+        return serve_http(host=args.host or "127.0.0.1", port=args.port or 8765, new_token=args.new_token)
+    if args.command == "serve" and (args.host or args.port or args.new_token):
+        parser.error("--host, --port and --new-token need --http")
 
     from .server import serve
 

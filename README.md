@@ -23,7 +23,8 @@
 ---
 
 <div align="center">
-<img src="https://raw.githubusercontent.com/DamienDrash/iphone-mcp/main/assets/demo.svg" alt="Example: the agent opens Settings and reads which Wi-Fi the iPhone uses" width="760">
+<img src="https://raw.githubusercontent.com/DamienDrash/iphone-mcp/main/assets/demo.gif" alt="Recorded on a real iPhone 15 Pro Max: the agent opens the Calculator, reads the keys with iphone_ui_tree and taps 128 × 42 = 5376" width="760">
+<br><sub>Recorded on a real iPhone 15 Pro Max over Wi-Fi – every frame is a screenshot taken through iphone-mcp.</sub>
 </div>
 
 ## ✨ Highlights
@@ -195,6 +196,55 @@ iphone-mcp uses the tunnel that Xcode itself keeps to the phone. That tunnel wor
 | Phone already locked | The tools say so. The agent can wake the screen; **you** enter the passcode or use Face ID – the agent can't, by design. |
 | Starting the agent | Needs an unlocked iPhone (Xcode's rule). The agent is told to ask you, and the start continues by itself once you unlock. |
 
+## 🌍 Remote access (support)
+
+Help someone with their iPhone from elsewhere – your agent drives the phone, they keep it in their hand.
+A computer next to the iPhone is still needed (it launches WebDriverAgent, over cable or the same Wi-Fi);
+it runs iphone-mcp as an **HTTP server with an access token**, and your agent connects to that.
+
+```
+your agent ──HTTPS──▶ Tailscale / Cloudflare Tunnel ──▶ iphone-mcp serve --http (127.0.0.1:8765) ──▶ WebDriverAgent ──▶ iPhone
+```
+
+**Before you start:** the person holding the iPhone must agree to it and should watch the screen. If the phone
+is locked with a passcode, they have to unlock it – the agent can't, by design.
+
+1. On the computer next to the iPhone (check with `iphone-mcp doctor` first):
+
+   ```bash
+   iphone-mcp serve --http
+   ```
+
+   It listens on `127.0.0.1:8765` only and prints an access token the first time (stored with mode 0600 in
+   `~/.config/iphone-mcp/http-token`; replace it with `--new-token`, or set your own with `IPHONE_MCP_TOKEN`).
+   Every request without this token is rejected.
+
+2. Make it reachable – pick one:
+   - **[Tailscale](https://tailscale.com)** (simplest): install it on both computers, same tailnet, then
+     `tailscale serve --bg 8765` on the computer next to the iPhone. The address is
+     `https://<machine>.<tailnet>.ts.net/mcp` and only devices in your tailnet can reach it.
+   - **[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)**:
+     `cloudflared tunnel --url http://127.0.0.1:8765` gives a public `https://…trycloudflare.com` address
+     (a named tunnel with Cloudflare Access is better for repeated use). Here the token is the only lock.
+
+3. On your side, add it as a remote MCP server:
+
+   ```bash
+   claude mcp add --transport http iphone https://<host>/mcp --header "Authorization: Bearer <token>"
+   ```
+
+   Other clients: URL `https://<host>/mcp`, transport *Streamable HTTP*, header `Authorization: Bearer <token>`.
+
+4. When you're done, stop the server with Ctrl+C. WebDriverAgent stops with it unless another iphone-mcp still uses it.
+
+**Never expose WebDriverAgent's port 8100 directly** (no port forwarding, no tunnel to it): it has no
+authentication, so anyone reaching it controls the phone. Only `iphone-mcp serve --http` should be reachable,
+and only through a tunnel or private network. `--host 0.0.0.0` makes it listen on every network the computer
+is in; use it only inside a network you trust.
+
+Every tool call is logged with time, tool name and client address to `remote.log` in the log folder (no
+arguments, so no typed text and no screenshots), as are rejected requests.
+
 ## 🐧 Linux & Windows
 
 Everything except *building* WebDriverAgent works without a Mac. iphone-mcp starts WebDriverAgent through [pymobiledevice3](https://github.com/doronz88/pymobiledevice3)'s XCUITest service and its **root-free userspace tunnel** (iOS 17.4+), over USB or Wi-Fi.
@@ -265,6 +315,7 @@ Reports are welcome.
 | Command | |
 |---|---|
 | `iphone-mcp` | Run the MCP server on stdio (what your client starts) |
+| `iphone-mcp serve --http [--host 127.0.0.1] [--port 8765] [--new-token]` | Run it over HTTP with an access token for [remote access](#-remote-access-support) |
 | `iphone-mcp doctor` | Check Xcode / signing / iPhone / connection |
 | `iphone-mcp setup [--udid …] [--team …]` | Build & install WebDriverAgent with Xcode |
 | `iphone-mcp setup --prebuilt` · `--ipa FILE` | Without Xcode: download the prebuilt app / install a signed one |
@@ -284,6 +335,7 @@ Reports are welcome.
 | `IPHONE_MCP_LAUNCHER` | `xcodebuild` (default on macOS) or `pymobiledevice3` |
 | `IPHONE_MCP_TEAM_ID` · `IPHONE_MCP_BUNDLE_ID` | Signing team and bundle ID for `setup` |
 | `IPHONE_MCP_RUNNER_BUNDLE_ID` | Bundle ID of an installed WebDriverAgent runner (no-Xcode launch) |
+| `IPHONE_MCP_TOKEN` | Access token for `serve --http` (at least 16 characters); without it one is generated and stored |
 | `IPHONE_MCP_WDA_REF` | WebDriverAgent release to build or download (default: a tested one) |
 
 iphone-mcp writes files only to these places, never to your project:
@@ -323,6 +375,7 @@ This gives an AI agent hands on your real phone, with your accounts, messages an
 - The server tells the agent to **ask before anything with real-world effect**: sending messages, purchases, payments, deleting data, changing account or security settings. Watch what it does anyway, and keep your client's tool approvals on.
 - iphone-mcp never types passwords or passcodes.
 - While WebDriverAgent runs, it listens on port 8100 on the iPhone **without authentication**. Use trusted networks only, and stop it when you're done (`iphone-mcp stop`).
+- For access from outside your network use `iphone-mcp serve --http` behind Tailscale or Cloudflare Tunnel ([Remote access](#-remote-access-support)), never port 8100 itself.
 
 See [SECURITY.md](SECURITY.md) for how to report vulnerabilities.
 
