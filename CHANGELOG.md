@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+No change to the tools or the server; project and contributor housekeeping.
+
+- **Contributors:** Code of Conduct (Contributor Covenant 2.1), issue forms for bug reports, feature requests
+  and compatibility reports (Windows, iOS 17/18, Wi-Fi without a Mac), a pull request template, and a
+  CONTRIBUTING section on where to start and how pull requests flow.
+- **Security:** SECURITY.md lists the supported versions and what to include in a private report.
+  All GitHub Actions are pinned to full commit SHAs (Dependabot keeps them current); CI runs with read-only
+  permissions, without persisted git credentials, and with a 20-minute job timeout.
+- **README:** downloads badge, where Claude Desktop keeps its MCP config, and a fuller *Contributing* section.
+- `docs/metrics/`: dated baseline of downloads, stars and dependents.
+
 ## 1.1.0 – 2026-11-24 · remote access and several iPhones
 
 - **Remote access:** `iphone-mcp serve --http` serves the MCP server over Streamable HTTP at `/mcp`, so an agent

@@ -8,6 +8,7 @@
 [![CI](https://github.com/DamienDrash/iphone-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/DamienDrash/iphone-mcp/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/iphone-mcp?label=PyPI&color=7c5cff&cacheSeconds=3600)](https://pypi.org/project/iphone-mcp/)
 [![Python](https://img.shields.io/pypi/pyversions/iphone-mcp?color=22d3ee&cacheSeconds=3600)](https://pypi.org/project/iphone-mcp/)
+[![Downloads](https://img.shields.io/pypi/dm/iphone-mcp?label=downloads&color=22d3ee)](https://pypistats.org/packages/iphone-mcp)
 [![MCP](https://img.shields.io/badge/MCP-server-7c5cff)](https://modelcontextprotocol.io)
 [![DamienDrash/iphone-mcp MCP server](https://glama.ai/mcp/servers/DamienDrash/iphone-mcp/badges/score.svg)](https://glama.ai/mcp/servers/DamienDrash/iphone-mcp)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-0b1020)](#-linux--windows)
@@ -115,6 +116,8 @@ tool_timeout_sec = 180   # starting the agent can take a minute
 
 <details>
 <summary><b>Claude Desktop, Cursor, VS Code & other MCP clients</b></summary>
+
+Claude Desktop: Settings → Developer → *Edit Config* (`claude_desktop_config.json`), then restart Claude Desktop. Other clients use the same block in their MCP settings.
 
 ```json
 {
@@ -394,7 +397,14 @@ Logs: `~/Library/Logs/iphone-mcp/wda-<udid>.log` (runtime, one per iPhone) and `
 
 ## 🤝 Contributing
 
-Issues and pull requests are welcome – see [CONTRIBUTING.md](CONTRIBUTING.md). Run the checks with:
+Issues and pull requests are welcome – see [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+- **New here?** Pick an issue labelled [`good first issue`](https://github.com/DamienDrash/iphone-mcp/labels/good%20first%20issue) – most need no iPhone.
+- **Have a Windows PC, an iPhone on iOS 17/18, or Linux with USB?** Run `iphone-mcp selftest` and send a
+  [compatibility report](https://github.com/DamienDrash/iphone-mcp/issues/new?template=compatibility_report.yml) – that is the most useful help right now.
+- **Found a security problem?** Report it [privately](https://github.com/DamienDrash/iphone-mcp/security/advisories/new), not as an issue.
+
+Run the checks with:
 
 ```bash
 uv sync && uv run pytest && uv run mypy && uv run ruff check . && uv run ruff format --check .
