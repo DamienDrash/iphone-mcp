@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.1 – unreleased · project housekeeping
 
 No change to the tools or the server; project and contributor housekeeping.
 
