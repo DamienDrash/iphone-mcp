@@ -1,0 +1,45 @@
+name: Compatibility report
+description: Tell us iphone-mcp works (or not) on a device, iOS version or OS we have not tested.
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        These reports are how iphone-mcp gets tested beyond the maintainer's own iPhone. The most wanted ones:
+        **Windows**, **iOS 17 / 18**, and **Wi-Fi without a Mac** (`IPHONE_MCP_MODE=wifi`).
+        The quickest check is `iphone-mcp selftest` (harmless actions in the Settings app only).
+  - type: input
+    id: version
+    attributes:
+      label: iphone-mcp version
+      placeholder: "1.1.0"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: iPhone model and iOS version
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: Computer and OS
+      placeholder: "Windows 11, Python 3.12"
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result
+      options:
+        - Works (selftest passed)
+        - Partly works
+        - Does not work
+    validations:
+      required: true
+  - type: textarea
+    id: selftest
+    attributes:
+      label: Output of `iphone-mcp selftest` (or `doctor` if it does not start)
+      render: text
