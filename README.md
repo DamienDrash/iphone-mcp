@@ -404,6 +404,12 @@ Issues and pull requests are welcome – see [CONTRIBUTING.md](CONTRIBUTING.md) 
   [compatibility report](https://github.com/DamienDrash/iphone-mcp/issues/new?template=compatibility_report.yml) – that is the most useful help right now.
 - **Found a security problem?** Report it [privately](https://github.com/DamienDrash/iphone-mcp/security/advisories/new), not as an issue.
 
+### "Automation Running – Hold both volume buttons to stop" banner
+
+On iOS 15+ a moving banner reading **Automation Running** appears while WebDriverAgent is active. This is drawn by the OS process `com.apple.dt.AutomationModeUI` — it **cannot** be hidden or suppressed, and it **does not** appear in screenshots taken through iphone-mcp. Holding both volume buttons ends the automation session; iphone-mcp will restart WebDriverAgent automatically on the next call when `IPHONE_MCP_AUTO_RECOVER` is enabled. If the banner persists after you have finished using the agent, run `iphone-mcp stop` to end the session cleanly.
+
+---
+
 Run the checks with:
 
 ```bash
