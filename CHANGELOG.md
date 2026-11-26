@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Document the iOS automation banner and how to end a lingering WebDriverAgent session.
+
 ## 1.1.1 – 2026-11-26 · project housekeeping
 
 No change to the tools or the server; project and contributor housekeeping.
