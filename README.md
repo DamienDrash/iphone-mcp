@@ -388,6 +388,7 @@ See [SECURITY.md](SECURITY.md) for how to report vulnerabilities.
 |---|---|
 | `Unable to find a destination matching … id:` | The iPhone isn't connected right now – replug, unlock, run `iphone-mcp doctor`. |
 | “Unlock … to Continue” / “device is locked” | Unlock the iPhone; the start continues by itself. |
+| “Automation Running – Hold both volume buttons to stop” | iOS 15 and later displays this banner while WebDriverAgent is running. iOS keeps it visible on the phone and omits it from screenshots. Hold both volume buttons to end the session. With `IPHONE_MCP_AUTO_RECOVER` enabled, the next call can restart WebDriverAgent. If the banner persists after you quit the agent, the session is still active. Run `iphone-mcp stop` to end it. |
 | `unavailable` after unplugging | Wi-Fi isn't set up – see [Wi-Fi](#-wi-fi). Is the iPhone on the same Wi-Fi as the computer? |
 | Signing errors during `setup` | Xcode → Settings → Accounts: sign in. Use `--team` if you're in several teams. |
 | Worked yesterday, not today (free Apple ID) | The signature expired after 7 days – run `iphone-mcp setup` again. |
